@@ -1,44 +1,42 @@
-# 🏆 Dream League Soccer (DLS) Tournament Hub
+# 🏆 EPL DLS Tournament Hub & Kit Directory
 
-A high-energy, mobile-responsive web dashboard designed for managing local Dream League Soccer tournaments. Built with a sleek console-style UI featuring glassmorphism elements, neon accents, and custom tactical shapes inspired by the real game.
-
-## 🚀 Live Demo
-Once your GitHub Pages deployment is active, you can access your live hub here:
-`https://your-username.github.io/your-repository-name/`
+An immersive, Premier League-themed web application built for **Dream League Soccer (DLS)** communities, players, and tournament administrators. Manage tournaments, track fixtures, browse device-synced leaderboards, and access a complete directory of DLS 26 team logos and kit URLs with a single click.
 
 ---
 
-## ⚡ Features
+## ✨ Key Features
 
-* **DLS Style UI:** Immersive dark theme with electric neon greens, stadium light backdrops, and slanted navigation widgets.
-* **Live-Calculating League Table:** Automatically tallies Points (Pts), Played (P), Wins (W), Draws (D), Losses (L), and Goal Difference (GD). Ties are broken dynamically based on goal records.
-* **Knockout Bracket Generator:** Instantly seeds registered players into automated Round 1 matchups with smart 'BYE' support for odd player numbers.
-* **Admin Authentication Gate:** Secured with an email/password prompt to restrict tournament adjustments, registration, and data resets to the organizer only.
-* **Matchmaking Chat Interface:** A streamlined workspace area for users to coordinate room codes or discuss scores.
-* **Persistent Storage:** Powered by `localStorage` so your data stays saved on your browser even if you close the tab.
-
----
-
-## 🛠️ Setup & Files Structure
-
-To make sure your custom images load correctly, your GitHub repository structure should look like this:
-
-├── index.html
-└── images/
-    ├── logo.png
-    └── background.jpg
+* **⚽ Interactive Team Kits Directory:** Access official logos and kit variations (Home, Away, Third, Goalkeeper) for DLS 26 national and club teams, complete with one-click copy URL buttons.
+* **📹 Integrated Tutorial Guide:** Built-in video walkthrough showing players how to seamlessly import custom kit PNG URLs directly into Dream League Soccer.
+* **🏆 Dynamic Tournament Management:** Admins can create and manage tournaments with custom rules and custom background images uploaded directly from their device.
+* **👥 Player Hub & Social System:** Send friend requests, view player statuses, update personal profiles, and monitor match fixtures and top scorers.
+* **🎨 Modern EPL Broadcast Aesthetic:** Glassmorphic UI design featuring neon accents, sticky navigation headers, responsive data tables, and a subtle floating background animation.
 
 ---
 
-## 🔐 Admin Configuration
-The default login credentials for tournament administration are preconfigured within the script:
-* **Admin ID:** `architectvince7@gmail.com`
-* **Security PIN:** `architectvince@123#$`
+## 🛠️ Built With
+
+* **HTML5** – Structured semantic layout and modular page templates.
+* **CSS3** – Custom properties, glassmorphism (`backdrop-filter`), grid/flexbox layouts, and broadcast-themed styling.
+* **JavaScript (ES6+)** – Interactive modals, local state management, file-reader handling for local image uploads, and clipboard utilities.
 
 ---
 
-## 📝 How to Run Your Tournament
+## 🚀 Getting Started
 
-1.  **Register Teams:** Navigate to the Admin Panel, authenticate, and register each participant's team/manager name.
-2.  **Generate Matches:** Use the **Tournament Control** widget to shuffle and build your knockout pairings.
-3.  **Update Scores:** Input match scoreboards directly into the **Report Match Score** calculator to automatically re-rank the league standings in real-time.
+To run this project locally on your machine:
+
+1. Clone or download this repository to your local device.
+2. Ensure you have the following three core files in your project directory:
+   * `index.html` (Main structure & UI pages)
+   * `styles.css` (Visual styling & broadcast layout engine)
+   * `app.js` (Application logic, state, and event handlers)
+3. Open `index.html` in any modern web browser (Google Chrome, Microsoft Edge, Firefox, or Safari).
+
+---
+
+## 🕹️ How to Use
+
+* **Log In / Register:** Access the dashboard using default credentials or create your own player profile.
+* **Explore Kits:** Navigate to the **Kits** page, watch the quick import guide video, click on any team card to open their locker room modal, and copy your preferred kit or logo URL instantly.
+* **Manage Tournaments (Admin):** Log in as an administrator to create tournaments, upload custom backgrounds from your device, and configure matchups.
