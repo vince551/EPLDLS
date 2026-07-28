@@ -370,16 +370,42 @@
         </div>
     </div>
 
-    <div id="openTournModal" class="modal">
-        <div class="modal-content card" style="max-width:600px; margin: 40px auto;">
+<div id="openTournModal" class="modal">
+        <div class="modal-content card" style="max-width:700px; margin: 40px auto;">
             <div class="card-header">
                 <span id="modalTournTitle">Tournament Details</span>
                 <button class="btn-close" onclick="closeModal('openTournModal')" style="background:none; border:none; color:#fff; cursor:pointer;">✕</button>
             </div>
-            <div style="margin-bottom:15px;">
+            
+            <div style="margin-bottom:20px;">
                 <h4 style="color:var(--epl-mint); margin-bottom:6px;">Tournament Rules</h4>
                 <p id="modalTournRules" style="font-size:13px; color:var(--epl-text-sub); white-space:pre-line;"></p>
             </div>
+
+            <div style="margin-bottom:20px;">
+                <h4 style="color:var(--epl-mint); margin-bottom:8px;">📊 Tournament Standings Table</h4>
+                <div style="overflow-x:auto;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Pos</th>
+                                <th>Team</th>
+                                <th>P</th>
+                                <th>W</th>
+                                <th>D</th>
+                                <th>L</th>
+                                <th>GF</th>
+                                <th>GA</th>
+                                <th>GD</th>
+                                <th>Pts</th>
+                            </tr>
+                        </thead>
+                        <tbody id="modalTournStandingsBody">
+                            </tbody>
+                    </table>
+                </div>
+            </div>
+
             <div>
                 <h4 style="color:var(--epl-mint); margin-bottom:8px;">Tournament Fixtures</h4>
                 <div id="modalTournFixturesList"></div>
