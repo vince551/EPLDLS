@@ -1,108 +1,123 @@
 /* ==========================================================================
-   EPL DLS HUB - APP CONTROLLER (WITH COMPLETE ADMIN FUNCTIONALITY)
+   EPL DLS HUB - COMPLETE APP CONTROLLER & RUNTIME ENGINE
    ========================================================================== */
 
-// Initialize or reference database state
 window.db = window.db || {
     users: [
         { id: 1, name: "Admin", team: "System HQ", pass: "admin123", role: "admin", online: true, statusColor: "status-online", pic: "", friendRequests: [], friends: [] },
-        { id: 2, name: "Alex Mercer", team: "Shadow Strikers", pass: "1234", role: "user", online: true, statusColor: "status-online", pic: "", friendRequests: [], friends: [] },
+        { id: 2, name: "Alex Mercer", team: "Shadow Strikers", pass: "1234", role: "user", online: false, statusColor: "status-offline", pic: "", friendRequests: [], friends: [] },
         { id: 3, name: "John Doe", team: "Red Dragons", pass: "1234", role: "user", online: false, statusColor: "status-offline", pic: "", friendRequests: [], friends: [] }
     ],
     tournaments: [
-        { id: 1, name: "Premier League DLS Cup", rules: "1. Respect match times.\n2. Submit screenshot proofs." }
+        { id: 1, name: "Premier League DLS Cup", rules: "1. Respect match times.\n2. Submit screenshot proofs of final scores.", bgImage: "" }
     ],
-    fixtures: [],
-    topScorers: [],
+    fixtures: [
+        { id: 101, tournId: 1, home: "Shadow Strikers", away: "Red Dragons", date: "2026-06-01", weekday: "Monday", time: "18:00", played: true, homeScore: 3, awayScore: 1 },
+        { id: 102, tournId: 1, home: "Red Dragons", away: "System HQ", date: "2026-06-03", weekday: "Wednesday", time: "20:00", played: false, homeScore: null, awayScore: null }
+    ],
     notifications: [],
     messages: []
 };
 
 let currentUser = null;
+let activeChatFriendId = null;
+let activeFixturesFilter = 'all';
 
-// Global State Sync Trigger
+// INITIALIZATION & ROUTING
+window.addEventListener('DOMContentLoaded', () => {
+    updateAndSync();
+    renderTeamKitsGrid();
+});
+
 function updateAndSync() {
-    if (typeof window.saveToFirebase === 'function') {
-        window.saveToFirebase();
-    }
     renderAll();
 }
 
-// Main View Renderer
-window.renderAll = function() {
-    if (currentUser) {
-        if (currentUser.role === 'admin') {
-            renderAdminMembers();
-            renderAdminTournaments();
-            renderAdminFixturesSelects();
-            renderAdminFixturesList();
-            renderAdminNotifications();
-        } else {
-            renderUserTournaments();
-            renderUserFixtures();
-            updateNotificationBadge();
-        }
+function showPage(pageId) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    const target = document.getElementById(pageId);
+    if (target) target.classList.add('active');
+
+    // Update nav active states
+    document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
+    event && event.target && event.target.classList.add('active');
+
+    renderAll();
+}
+
+function renderAll() {
+    renderNavigation();
+    renderTopPlayerMarquee();
+    renderNotificationsBadge();
+
+    if (!currentUser) return;
+
+    if (currentUser.role === 'admin') {
+        renderAdminDashboard();
+    } else {
+        renderUserHome();
+        renderTournamentsList();
+        renderUserFixturesGrouped();
+        renderFriendsPage();
+        renderProfilePage();
     }
-    calculateTopPlayer();
-};
+}
 
-// ------------------- AUTHENTICATION -------------------
-function switchAuthTab(type) {
-    const tLogin = document.getElementById('toggleLogin');
-    const tReg = document.getElementById('toggleReg');
-    const fLogin = document.getElementById('loginForm');
-    const fReg = document.getElementById('regForm');
+// AUTHENTICATION & TABS
+function switchAuthTab(tab) {
+    const loginForm = document.getElementById('loginForm');
+    const registerForm = document.getElementById('registerForm');
+    const loginBtn = document.getElementById('loginTabBtn');
+    const registerBtn = document.getElementById('registerTabBtn');
 
-    if (!tLogin || !tReg || !fLogin || !fReg) return;
-
-    const isLogin = type === 'login';
-    tLogin.classList.toggle('active', isLogin);
-    tReg.classList.toggle('active', !isLogin);
-    fLogin.style.display = isLogin ? 'block' : 'none';
-    fReg.style.display = isLogin ? 'none' : 'block';
+    if (tab === 'login') {
+        loginForm.style.display = 'block';
+        registerForm.style.display = 'none';
+        loginBtn.className = 'btn btn-primary';
+        registerBtn.style.background = 'rgba(255,255,255,0.06)';
+        registerBtn.style.color = '#fff';
+    } else {
+        loginForm.style.display = 'none';
+        registerForm.style.display = 'block';
+        registerBtn.className = 'btn btn-primary';
+        loginBtn.style.background = 'rgba(255,255,255,0.06)';
+        loginBtn.style.color = '#fff';
+    }
 }
 
 function handleLogin(e) {
     e.preventDefault();
-    const username = document.getElementById('loginUser')?.value.trim();
-    const pass = document.getElementById('loginPass')?.value.trim();
+    const name = document.getElementById('loginName').value.trim();
+    const pass = document.getElementById('loginPass').value.trim();
 
-    const user = window.db.users.find(u => u.name.toLowerCase() === username?.toLowerCase() && u.pass === pass);
-
-    if (user) {
-        if (user.banned) {
-            return alert("This account/team has been banned from participating in tournaments.");
-        }
-
-        currentUser = user;
-        currentUser.online = true;
-        currentUser.statusColor = 'status-online';
-
-        document.getElementById('authPage')?.classList.remove('active');
-
-        const navId = currentUser.role === 'admin' ? 'adminNav' : 'userNav';
-        const startPage = currentUser.role === 'admin' ? 'adminHome' : 'userHome';
-        
-        const nav = document.getElementById(navId);
-        if (nav) nav.style.display = 'flex';
-        showPage(startPage);
-
-        updateAndSync();
-    } else {
-        alert("Invalid Username or Password!");
+    const user = window.db.users.find(u => u.name.toLowerCase() === name.toLowerCase() && u.pass === pass);
+    if (!user) {
+        return alert("Invalid username or password.");
     }
+
+    currentUser = user;
+    user.online = true;
+    user.statusColor = 'status-online';
+
+    document.getElementById('loginName').value = '';
+    document.getElementById('loginPass').value = '';
+
+    if (user.role === 'admin') {
+        showPage('adminDashboard');
+    } else {
+        showPage('userHome');
+    }
+    updateAndSync();
 }
 
 function handleRegister(e) {
     e.preventDefault();
-    const name = document.getElementById('regName')?.value.trim();
-    const team = document.getElementById('regTeam')?.value.trim();
-    const pass = document.getElementById('regPass')?.value.trim();
-
-    if (!name || !team || !pass) return alert("Please fill out all fields.");
+    const name = document.getElementById('regName').value.trim();
+    const team = document.getElementById('regTeam').value.trim();
+    const pass = document.getElementById('regPass').value.trim();
 
     if (window.db.users.some(u => u.name.toLowerCase() === name.toLowerCase())) {
-        return alert("Username already taken.");
+        return alert("Username already exists.");
     }
 
     const newUser = {
@@ -110,11 +125,10 @@ function handleRegister(e) {
         name,
         team,
         pass,
-        role: "user",
+        role: 'user',
         online: true,
-        statusColor: "status-online",
-        pic: "",
-        banned: false,
+        statusColor: 'status-online',
+        pic: '',
         friendRequests: [],
         friends: []
     };
@@ -122,12 +136,28 @@ function handleRegister(e) {
     window.db.users.push(newUser);
     currentUser = newUser;
 
-    document.getElementById('authPage')?.classList.remove('active');
-    const userNav = document.getElementById('userNav');
-    if (userNav) userNav.style.display = 'flex';
-    
+    document.getElementById('regName').value = '';
+    document.getElementById('regTeam').value = '';
+    document.getElementById('regPass').value = '';
+
+    alert("Account created successfully!");
     showPage('userHome');
     updateAndSync();
+}
+
+function handleForgotPassword(e) {
+    e.preventDefault();
+    const name = document.getElementById('resetName').value.trim();
+    const newPass = document.getElementById('resetNewPass').value.trim();
+
+    const user = window.db.users.find(u => u.name.toLowerCase() === name.toLowerCase());
+    if (!user) {
+        return alert("User not found with that name.");
+    }
+
+    user.pass = newPass;
+    closeModal('forgotPassModal');
+    alert("Password reset successfully! You can now log in.");
 }
 
 function logout() {
@@ -136,699 +166,287 @@ function logout() {
         currentUser.statusColor = 'status-offline';
     }
     currentUser = null;
-
-    ['userNav', 'adminNav'].forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.style.display = 'none';
-    });
-
-    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-    document.getElementById('authPage')?.classList.add('active');
+    document.getElementById('userNav').style.display = 'none';
+    document.getElementById('adminNav').style.display = 'none';
+    showPage('authPage');
     updateAndSync();
 }
 
-// ------------------- NAVIGATION -------------------
-function showPage(pageId) {
-    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-    const target = document.getElementById(pageId);
-    if (target) target.classList.add('active');
+function renderNavigation() {
+    const userNav = document.getElementById('userNav');
+    const adminNav = document.getElementById('adminNav');
 
-    const navId = (currentUser && currentUser.role === 'admin') ? 'adminNav' : 'userNav';
-    document.querySelectorAll(`#${navId} .nav-btn`).forEach(btn => btn.classList.remove('active'));
-
-    const activeBtn = document.querySelector(`#${navId} button[onclick="showPage('${pageId}')"]`);
-    if (activeBtn) activeBtn.classList.add('active');
+    if (!currentUser) {
+        userNav.style.display = 'none';
+        adminNav.style.display = 'none';
+    } else if (currentUser.role === 'admin') {
+        userNav.style.display = 'none';
+        adminNav.style.display = 'flex';
+        adminNav.style.alignItems = 'center';
+        adminNav.style.gap = '10px';
+    } else {
+        userNav.style.display = 'flex';
+        userNav.style.alignItems = 'center';
+        userNav.style.gap = '10px';
+        adminNav.style.display = 'none';
+    }
 }
 
-// ------------------- DYNAMIC TICKER -------------------
-function calculateTopPlayer() {
+// DAILY TOP PLAYER MARQUEE
+function renderTopPlayerMarquee() {
     const banner = document.getElementById('topPlayerBanner');
     if (!banner) return;
 
-    let topScorerText = "🏆 TOP SCORER: NO GOALS LOGGED YET";
-    if (window.db.topScorers && window.db.topScorers.length > 0) {
-        const leader = window.db.topScorers[0];
-        topScorerText = `🏆 GOLDEN BOOT LEADER: ${leader.name.toUpperCase()} (${leader.team}) - ${leader.goals} GOALS`;
-    }
-
-    const todayStr = new Date().toISOString().split('T')[0];
-    let todaysFixtures = (window.db.fixtures || []).filter(f => f.date === todayStr);
-
-    let isUpcoming = false;
-    if (todaysFixtures.length === 0) {
-        todaysFixtures = (window.db.fixtures || []).filter(f => !f.played).slice(0, 5);
-        isUpcoming = true;
-    }
-
-    let fixtureText = "";
-    if (todaysFixtures.length > 0) {
-        const fixtureList = todaysFixtures.map(f => 
-            f.played 
-                ? `⚽ ${f.home} ${f.scoreHome} - ${f.scoreAway} ${f.away} (FT)`
-                : `⏳ ${f.home} VS ${f.away} (${f.time})`
-        ).join("  |  ");
-
-        const label = isUpcoming ? "UPCOMING MATCHES" : "TODAY'S FIXTURES";
-        fixtureText = `  ||  📅 ${label}: ${fixtureList}`;
-    } else {
-        fixtureText = `  ||  📅 NO MATCHES SCHEDULED`;
-    }
-
-    banner.innerHTML = `${topScorerText}${fixtureText}`;
-}
-
-// ------------------- USER VIEWS -------------------
-function renderUserTournaments() {
-    const container = document.getElementById('userTournamentList');
-    const homeContainer = document.getElementById('userHomeTournaments');
-    if (!container) return;
-
-    if (!window.db.tournaments || window.db.tournaments.length === 0) {
-        const emptyMsg = '<p class="text-sub">No tournaments active currently.</p>';
-        container.innerHTML = emptyMsg;
-        if (homeContainer) homeContainer.innerHTML = emptyMsg;
+    const playedFixtures = window.db.fixtures.filter(f => f.played && f.homeScore !== null && f.awayScore !== null);
+    if (playedFixtures.length === 0) {
+        banner.innerText = "🏆 TOP PLAYER OF THE DAY: NO COMPLETED MATCHES YET TODAY 🏆";
         return;
     }
 
-    const html = window.db.tournaments.map(t => `
-        <div class="tournament-item card" style="margin-bottom: 10px;">
-            <h3>${t.name}</h3>
-            <p style="font-size:12px; color:var(--epl-text-sub); margin-top:6px; white-space:pre-line;">${t.rules || 'No rules defined.'}</p>
-        </div>
-    `).join('');
+    // Pick top scorer/winner from latest fixture
+    const latest = playedFixtures[playedFixtures.length - 1];
+    const winningTeam = latest.homeScore > latest.awayScore ? latest.home : latest.away;
+    const topPlayerUser = window.db.users.find(u => u.team === winningTeam) || currentUser;
 
-    container.innerHTML = html;
-    if (homeContainer) homeContainer.innerHTML = html;
+    banner.innerText = `🏆 TOP PLAYER OF THE DAY: ${topPlayerUser ? topPlayerUser.name.toUpperCase() : 'STAR PLAYER'} (${winningTeam}) - LEADING THE LEAGUE STANDINGS! 🏆`;
 }
 
-function renderUserFixtures() {
-    const container = document.getElementById('fixturesContainer');
+// USER: HOME & TOURNAMENTS
+function renderUserHome() {
+    const container = document.getElementById('userTournamentsFeed');
     if (!container) return;
 
-    const filter = document.getElementById('fixtureFilter')?.value || 'all';
-    const search = document.getElementById('teamSearchInput')?.value.toLowerCase() || '';
-
-    let list = window.db.fixtures || [];
-    if (filter === 'upcoming') list = list.filter(f => !f.played);
-    if (filter === 'played') list = list.filter(f => f.played);
-    if (search) {
-        list = list.filter(f => f.home.toLowerCase().includes(search) || f.away.toLowerCase().includes(search));
-    }
-
-    if (list.length === 0) {
-        container.innerHTML = '<p class="text-sub">No fixtures found matching criteria.</p>';
+    const tournaments = window.db.tournaments || [];
+    if (tournaments.length === 0) {
+        container.innerHTML = '<p class="text-sub">No tournaments active right now.</p>';
         return;
     }
 
-    container.innerHTML = list.map(f => {
-        const opacityStyle = f.played ? 'opacity: 0.55; filter: grayscale(30%);' : '';
-        const scoreDisplay = f.played ? `${f.scoreHome} - ${f.scoreAway}` : 'VS';
+    const searchQuery = (document.getElementById('userTeamSearch')?.value || '').toLowerCase();
+
+    container.innerHTML = tournaments.map(t => {
+        const tFixtures = window.db.fixtures.filter(f => f.tournId === t.id);
+        const filteredFixtures = tFixtures.filter(f => 
+            !searchQuery || f.home.toLowerCase().includes(searchQuery) || f.away.toLowerCase().includes(searchQuery)
+        );
+
         return `
-            <div class="fixture-card card" style="margin-bottom:8px; ${opacityStyle}">
-                <div style="font-size:11px; color:var(--epl-mint); font-weight:bold;">${f.day || f.date} @ ${f.time} ${f.played ? '(FINISHED)' : '(SCHEDULED)'}</div>
-                <div style="display:flex; justify-content:space-between; align-items:center; margin: 12px 0; font-weight:bold;">
-                    <span style="font-size:15px;">${f.home}</span>
-                    <span style="background:var(--epl-pink); padding:6px 14px; border-radius:4px; font-weight:900;">${scoreDisplay}</span>
-                    <span style="font-size:15px;">${f.away}</span>
+            <div class="card tournament-card" style="margin-bottom:16px; ${t.bgImage ? `background: linear-gradient(rgba(18,0,22,0.85), rgba(18,0,22,0.92)), url('${t.bgImage}'); background-size: cover; background-position: center;` : ''}">
+                <div class="card-header">
+                    <span>🏆 ${t.name}</span>
+                </div>
+                <p style="font-size:13px; color:var(--epl-text-sub); margin-bottom:12px;">${t.rules}</p>
+                <div style="margin-bottom:12px;">
+                    <h5 style="color:var(--epl-mint); margin-bottom:6px;">Fixtures</h5>
+                    ${filteredFixtures.length === 0 ? '<p style="font-size:12px; color:var(--epl-text-sub);">No fixtures found matching search.</p>' : 
+                        filteredFixtures.map(f => {
+                            const isMyTeam = currentUser && (f.home === currentUser.team || f.away === currentUser.team);
+                            return `
+                                <div style="background:rgba(0,0,0,0.5); padding:10px; border-radius:8px; margin-bottom:6px; display:flex; justify-content:space-between; align-items:center; ${isMyTeam ? 'border:1px solid var(--epl-mint);' : ''} ${f.played ? 'opacity:0.5; filter:blur(0.3px);' : ''}">
+                                    <div>
+                                        <span style="font-size:11px; color:var(--epl-cyan);">${f.weekday}, ${f.date} (${f.time})</span>
+                                        <div style="font-weight:700; ${isMyTeam ? 'color:var(--epl-mint);' : ''}">${f.home} vs ${f.away}</div>
+                                    </div>
+                                    <div>${f.played ? `<strong>${f.homeScore} - ${f.awayScore}</strong>` : '<span class="badge-tag">Upcoming</span>'}</div>
+                                </div>
+                            `;
+                        }).join('')
+                    }
                 </div>
             </div>
         `;
     }).join('');
 }
 
-function updateNotificationBadge() {
-    const badge = document.getElementById('notifBadge');
-    if (badge) {
-        badge.innerText = window.db.notifications ? window.db.notifications.length : 0;
-    }
-}
-
-// ==========================================================================
-// 3. ADMIN MANAGEMENT FUNCTIONS
-// ==========================================================================
-
-// --- MEMBER DIRECTORY & ONLINE STATUS ---
-function renderAdminMembers() {
-    const tbody = document.getElementById('adminMembersTableBody');
-    const countBadge = document.getElementById('onlineUsersCount');
-    if (!tbody) return;
-
-    const users = window.db.users || [];
-    const onlineUsers = users.filter(u => u.online);
-    
-    if (countBadge) {
-        countBadge.innerText = `Online: ${onlineUsers.length} / ${users.length}`;
-    }
-
-    tbody.innerHTML = users.map((u, index) => {
-        const isOnline = u.online;
-        const statusDot = `<span style="display:inline-block; width:10px; height:10px; border-radius:50%; background-color:${isOnline ? '#00ff87' : '#888'}; box-shadow:${isOnline ? '0 0 8px #00ff87' : 'none'}; margin-right:6px;"></span>`;
-        const bannedLabel = u.banned ? '<span style="color:var(--epl-pink); font-weight:bold;"> (BANNED)</span>' : '';
-
-        return `
-            <tr style="border-bottom: 1px solid var(--epl-border);">
-                <td style="padding:10px;">${index + 1}</td>
-                <td style="padding:10px;">${statusDot} ${isOnline ? 'Online' : 'Offline'}</td>
-                <td style="padding:10px; font-weight:bold;">${u.name}${bannedLabel}</td>
-                <td style="padding:10px;">${u.team}</td>
-                <td style="padding:10px; color:var(--epl-text-sub); font-family:monospace;">${u.pass}</td>
-                <td style="padding:10px;">
-                    ${u.role !== 'admin' ? `
-                        <button style="background:var(--epl-pink); color:#fff; border:none; padding:4px 8px; border-radius:4px; cursor:pointer; font-size:11px;" onclick="deleteUser(${u.id})">Delete</button>
-                        <button style="background:${u.banned ? '#00ff87' : '#e90052'}; color:${u.banned ? '#000' : '#fff'}; border:none; padding:4px 8px; border-radius:4px; cursor:pointer; font-size:11px; margin-left:4px;" onclick="toggleBanUser(${u.id})">
-                            ${u.banned ? 'Unban' : 'Ban Team'}
-                        </button>
-                    ` : '<span style="font-size:11px; color:var(--epl-mint);">System HQ</span>'}
-                </td>
-            </tr>
-        `;
-    }).join('');
-}
-
-function deleteUser(id) {
-    if (!confirm("Are you sure you want to delete this player and team?")) return;
-    window.db.users = window.db.users.filter(u => u.id !== id);
-    updateAndSync();
-}
-
-function toggleBanUser(id) {
-    const user = window.db.users.find(u => u.id === id);
-    if (user) {
-        user.banned = !user.banned;
-        alert(`${user.name} (${user.team}) has been ${user.banned ? 'banned' : 'unbanned'}.`);
-        updateAndSync();
-    }
-}
-
-// --- TOURNAMENT MANAGEMENT & RULES ---
-function handleCreateTournament(e) {
-    e.preventDefault();
-    const nameInput = document.getElementById('adminTournName');
-    const rulesInput = document.getElementById('adminTournRules');
-
-    if (!nameInput.value.trim()) return;
-
-    const newTourn = {
-        id: Date.now(),
-        name: nameInput.value.trim(),
-        rules: rulesInput.value.trim()
-    };
-
-    window.db.tournaments.push(newTourn);
-    nameInput.value = '';
-    rulesInput.value = '';
-
-    alert("Tournament Created Successfully!");
-    updateAndSync();
-}
-
-function renderAdminTournaments() {
-    const container = document.getElementById('adminTournamentsList');
+function renderTournamentsList() {
+    const container = document.getElementById('tournamentsListContainer');
     if (!container) return;
 
-    const tourns = window.db.tournaments || [];
-    if (tourns.length === 0) {
-        container.innerHTML = '<p class="text-sub">No tournaments active.</p>';
+    const tournaments = window.db.tournaments || [];
+    if (tournaments.length === 0) {
+        container.innerHTML = '<p class="text-sub">No tournaments available.</p>';
         return;
     }
 
-    container.innerHTML = tourns.map(t => `
-        <div class="card" style="background:rgba(0,0,0,0.3); margin-bottom:12px; padding:16px;">
-            <div style="display:flex; justify-content:space-between; align-items:center;">
-                <h3 style="color:var(--epl-mint);">${t.name}</h3>
-                <button style="background:var(--epl-pink); color:#fff; border:none; padding:6px 12px; border-radius:4px; cursor:pointer;" onclick="deleteTournament(${t.id})">Delete Tournament</button>
-            </div>
-            <div style="margin-top:10px;">
-                <label style="font-size:11px; color:var(--epl-text-sub); display:block; margin-bottom:4px;">Edit Tournament Rules:</label>
-                <textarea id="rules_${t.id}" rows="3" style="width:100%;">${t.rules || ''}</textarea>
-                <button class="btn btn-primary" style="margin-top:8px; padding:6px 12px; font-size:12px;" onclick="saveTournamentRules(${t.id})">Save Rules</button>
-            </div>
+    container.innerHTML = tournaments.map(t => `
+        <div class="card" style="margin-bottom:0; cursor:pointer;" onclick="openTournamentDetails(${t.id})">
+            <div class="card-header"><span>🏆 ${t.name}</span></div>
+            <p style="font-size:13px; color:var(--epl-text-sub); margin-bottom:12px; white-space:pre-line;">${t.rules.substring(0, 90)}...</p>
+            <button class="btn btn-primary" style="width:100%;">Open Tournament</button>
         </div>
     `).join('');
 }
 
-function saveTournamentRules(id) {
-    const rulesText = document.getElementById(`rules_${id}`)?.value;
-    const tourn = window.db.tournaments.find(t => t.id === id);
-    if (tourn) {
-        tourn.rules = rulesText;
-        alert("Tournament rules updated successfully!");
-        updateAndSync();
-    }
-}
+function openTournamentDetails(id) {
+    const t = window.db.tournaments.find(x => x.id === id);
+    if (!t) return;
 
-function deleteTournament(id) {
-    if (!confirm("Delete this tournament?")) return;
-    window.db.tournaments = window.db.tournaments.filter(t => t.id !== id);
-    updateAndSync();
-}
+    document.getElementById('modalTournTitle').innerText = t.name;
+    document.getElementById('modalTournRules').innerText = t.rules;
 
-// --- FIXTURE MANAGEMENT & AUTO WEEKDAY DETECTION ---
-function renderAdminFixturesSelects() {
-    const homeSelect = document.getElementById('fixtureHomeSelect');
-    const awaySelect = document.getElementById('fixtureAwaySelect');
-    if (!homeSelect || !awaySelect) return;
+    const tFixtures = window.db.fixtures.filter(f => f.tournId === t.id);
+    const container = document.getElementById('modalTournFixturesList');
 
-    const users = (window.db.users || []).filter(u => u.role !== 'admin' && !u.banned);
-    const options = users.map(u => `<option value="${u.team}">${u.team} (${u.name})</option>`).join('');
-
-    homeSelect.innerHTML = `<option value="">Select Home Team</option>` + options;
-    awaySelect.innerHTML = `<option value="">Select Away Team</option>` + options;
-}
-
-function handleDateChange(dateValue) {
-    const dayInput = document.getElementById('fixtureDay');
-    if (!dayInput || !dateValue) return;
-
-    const dateObj = new Date(dateValue + 'T00:00:00');
-    const weekday = dateObj.toLocaleDateString('en-US', { weekday: 'long' });
-    dayInput.value = weekday;
-}
-
-function handleCreateFixture(e) {
-    e.preventDefault();
-    const home = document.getElementById('fixtureHomeSelect')?.value;
-    const away = document.getElementById('fixtureAwaySelect')?.value;
-    const date = document.getElementById('fixtureDate')?.value;
-    const day = document.getElementById('fixtureDay')?.value;
-    const time = document.getElementById('fixtureTime')?.value;
-
-    if (!home || !away || !date || !time) {
-        return alert("Please select Home Team, Away Team, Date, and Time.");
-    }
-
-    if (home === away) {
-        return alert("Home and Away teams must be different!");
-    }
-
-    const newFixture = {
-        id: Date.now(),
-        home,
-        away,
-        date,
-        day,
-        time,
-        played: false,
-        scoreHome: 0,
-        scoreAway: 0
-    };
-
-    window.db.fixtures.push(newFixture);
-    alert("Fixture Scheduled Successfully!");
-    updateAndSync();
-}
-
-function renderAdminFixturesList() {
-    const container = document.getElementById('adminFixturesList');
-    if (!container) return;
-
-    const list = window.db.fixtures || [];
-    if (list.length === 0) {
-        container.innerHTML = '<p class="text-sub">No fixtures scheduled.</p>';
-        return;
-    }
-
-    container.innerHTML = list.map(f => `
-        <div class="card" style="margin-bottom:12px; background:rgba(0,0,0,0.3); ${f.played ? 'opacity:0.65;' : ''}">
-            <div style="display:flex; justify-content:space-between; font-size:12px; color:var(--epl-mint);">
-                <span>${f.day || f.date} @ ${f.time}</span>
-                <span>Status: ${f.played ? 'Completed (Played)' : 'Scheduled'}</span>
-            </div>
-            <div style="display:flex; justify-content:space-between; align-items:center; margin:12px 0;">
-                <span style="font-weight:bold; width:35%;">${f.home}</span>
-                
-                <div style="display:flex; gap:6px; align-items:center;">
-                    <input type="number" id="scoreH_${f.id}" value="${f.scoreHome}" style="width:50px; text-align:center;">
-                    <span>-</span>
-                    <input type="number" id="scoreA_${f.id}" value="${f.scoreAway}" style="width:50px; text-align:center;">
-                </div>
-
-                <span style="font-weight:bold; width:35%; text-align:right;">${f.away}</span>
-            </div>
-
-            <div style="display:flex; gap:8px; justify-content:flex-end;">
-                <button class="btn btn-primary" style="width:auto; padding:6px 14px; font-size:11px;" onclick="updateFixtureScore(${f.id})">
-                    ${f.played ? 'Update Score' : 'Submit Final Score'}
-                </button>
-                <button style="background:var(--epl-pink); color:#fff; border:none; padding:6px 12px; border-radius:4px; cursor:pointer; font-size:11px;" onclick="deleteFixture(${f.id})">
-                    Delete
-                </button>
-            </div>
-        </div>
-    `).join('');
-}
-
-function updateFixtureScore(id) {
-    const fixture = window.db.fixtures.find(f => f.id === id);
-    if (!fixture) return;
-
-    const sH = parseInt(document.getElementById(`scoreH_${id}`)?.value || 0);
-    const sA = parseInt(document.getElementById(`scoreA_${id}`)?.value || 0);
-
-    fixture.scoreHome = sH;
-    fixture.scoreAway = sA;
-    fixture.played = true;
-
-    alert(`Result set: ${fixture.home} ${sH} - ${sA} ${fixture.away}`);
-    updateAndSync();
-}
-
-function deleteFixture(id) {
-    if (!confirm("Delete this match fixture?")) return;
-    window.db.fixtures = window.db.fixtures.filter(f => f.id !== id);
-    updateAndSync();
-}
-
-// --- NOTIFICATION MANAGEMENT ---
-function handleSendNotification(e) {
-    e.preventDefault();
-    const type = document.getElementById('notifType')?.value;
-    const msg = document.getElementById('notifMessage')?.value.trim();
-
-    if (!msg) return;
-
-    const notif = {
-        id: Date.now(),
-        type,
-        message: msg,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    };
-
-    window.db.notifications = window.db.notifications || [];
-    window.db.notifications.unshift(notif);
-
-    document.getElementById('notifMessage').value = '';
-    alert("Notification sent to all users!");
-    updateAndSync();
-}
-
-function renderAdminNotifications() {
-    const container = document.getElementById('adminNotificationLogs');
-    if (!container) return;
-
-    const logs = window.db.notifications || [];
-    if (logs.length === 0) {
-        container.innerHTML = '<p class="text-sub">No notifications logged yet.</p>';
-        return;
-    }
-
-    container.innerHTML = logs.map(n => `
-        <div style="padding:10px; border-bottom:1px solid var(--epl-border); font-size:12px;">
-            <span style="color:var(--epl-mint); font-weight:bold;">[${n.type}] ${n.timestamp}</span>: ${n.message}
-        </div>
-    `).join('');
-}
-
-// Add 'userProfile' rendering into renderAll()
-const originalRenderAll = renderAll;
-renderAll = function() {
-    if (typeof originalRenderAll === 'function') originalRenderAll();
-    if (currentUser && currentUser.role === 'user') {
-        renderUserProfile();
-    }
-};
-
-// --- RENDER & EDIT USER PROFILE ---
-function renderUserProfile() {
-    const container = document.getElementById('profileDetails');
-    if (!container || !currentUser) return;
-
-    const currentPic = currentUser.pic || 'https://via.placeholder.com/100?text=Avatar';
-
-    container.innerHTML = `
-        <form onsubmit="handleUpdateProfile(event)" class="profile-form">
-            <div class="avatar-preview-container">
-                <img id="avatarPreview" src="${currentPic}" alt="Profile Picture" class="avatar-img">
-            </div>
-
-            <div class="form-group">
-                <label for="profPicUrl">Profile Picture URL / Upload</label>
-                <input type="text" id="profPicUrl" value="${currentUser.pic || ''}" placeholder="Paste image URL..." oninput="previewAvatarUrl(this.value)">
-                <input type="file" id="profPicFile" accept="image/*" onchange="handleFileUpload(event)" style="margin-top: 8px;">
-            </div>
-
-            <div class="form-group">
-                <label for="profName">Full Name</label>
-                <input type="text" id="profName" value="${currentUser.name}" required>
-            </div>
-
-            <div class="form-group">
-                <label for="profTeam">Team Name</label>
-                <input type="text" id="profTeam" value="${currentUser.team}" required>
-            </div>
-
-            <div class="form-group">
-                <label for="profPass">New Password (leave blank to keep current)</label>
-                <input type="password" id="profPass" placeholder="••••••••">
-            </div>
-
-            <button class="btn btn-primary" type="submit">Update Profile</button>
-        </form>
-    `;
-}
-
-function previewAvatarUrl(url) {
-    const img = document.getElementById('avatarPreview');
-    if (img && url) {
-        img.src = url;
-    }
-}
-
-function handleFileUpload(e) {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = function(evt) {
-        const base64Url = evt.target.result;
-        document.getElementById('profPicUrl').value = base64Url;
-        document.getElementById('avatarPreview').src = base64Url;
-    };
-    reader.readAsDataURL(file);
-}
-
-function handleUpdateProfile(e) {
-    e.preventDefault();
-    if (!currentUser) return;
-
-    const newName = document.getElementById('profName').value.trim();
-    const newTeam = document.getElementById('profTeam').value.trim();
-    const newPic = document.getElementById('profPicUrl').value.trim();
-    const newPass = document.getElementById('profPass').value.trim();
-
-    if (!newName || !newTeam) {
-        return alert("Name and Team Name cannot be empty.");
-    }
-
-    // Check username conflict
-    const nameConflict = window.db.users.some(u => u.id !== currentUser.id && u.name.toLowerCase() === newName.toLowerCase());
-    if (nameConflict) {
-        return alert("That username is already taken by another player.");
-    }
-
-    // Apply updates to local user object
-    currentUser.name = newName;
-    currentUser.team = newTeam;
-    currentUser.pic = newPic;
-    if (newPass) {
-        currentUser.pass = newPass;
-    }
-
-    // Update in global array
-    const idx = window.db.users.findIndex(u => u.id === currentUser.id);
-    if (idx !== -1) {
-        window.db.users[idx] = currentUser;
-    }
-
-    alert("Profile updated successfully!");
-    updateAndSync();
-}
-
-// --- FORGOT PASSWORD HANDLER ---
-function handleForgotPassword(e) {
-    e.preventDefault();
-    const name = document.getElementById('resetName')?.value.trim();
-    const newPass = document.getElementById('resetNewPass')?.value.trim();
-
-    const user = window.db.users.find(u => u.name.toLowerCase() === name.toLowerCase());
-
-    if (!user) {
-        return alert("User with that name was not found.");
-    }
-
-    user.pass = newPass;
-    alert("Password reset successfully! You can now log in with your new password.");
-    closeModal('forgotPassModal');
-    updateAndSync();
-}
-
-// --- OPEN TOURNAMENT MODAL HANDLER ---
-function openTournamentModal(tournId) {
-    const tourn = window.db.tournaments.find(t => t.id === tournId);
-    if (!tourn) return;
-
-    document.getElementById('modalTournTitle').innerText = tourn.name;
-    document.getElementById('modalTournRules').innerText = tourn.rules || 'No rules published yet.';
-
-    const fixtures = window.db.fixtures || [];
-    let fixHtml = '';
-
-    if (fixtures.length === 0) {
-        fixHtml = '<p class="text-sub">No fixtures scheduled yet.</p>';
+    if (tFixtures.length === 0) {
+        container.innerHTML = '<p style="font-size:13px; color:var(--epl-text-sub);">No fixtures scheduled for this tournament yet.</p>';
     } else {
-        fixHtml = fixtures.map(f => `
-            <div style="padding:8px; border-bottom:1px solid var(--epl-border); font-size:12px; display:flex; justify-content:space-between;">
-                <span>${f.home} vs ${f.away}</span>
-                <span style="color:var(--epl-mint); font-weight:bold;">${f.played ? f.scoreHome + ' - ' + f.scoreAway : f.time}</span>
+        container.innerHTML = tFixtures.map(f => `
+            <div style="background:rgba(0,0,0,0.5); padding:10px; border-radius:8px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center; ${f.played ? 'opacity:0.6;' : ''}">
+                <div>
+                    <span style="font-size:11px; color:var(--epl-cyan);">${f.weekday}, ${f.date} | ${f.time}</span>
+                    <div style="font-weight:700;">${f.home} vs ${f.away}</div>
+                </div>
+                <div>${f.played ? `<strong>${f.homeScore} - ${f.awayScore}</strong>` : '<span class="badge-tag">Upcoming</span>'}</div>
             </div>
         `).join('');
     }
 
-    document.getElementById('modalTournFixtures').innerHTML = fixHtml;
     document.getElementById('openTournModal').classList.add('active');
 }
 
-function closeModal(modalId) {
-    const modal = document.getElementById(modalId);
-    if (modal) modal.classList.remove('active');
+// USER: FIXTURES GROUPED
+function filterFixturesTab(tab) {
+    activeFixturesFilter = tab;
+    renderUserFixturesGrouped();
 }
 
-// --- ENHANCED USER FIXTURES (GROUPED BY DATE & TEAM HIGHLIGHTING) ---
 function renderUserFixturesGrouped() {
-    const container = document.getElementById('fixturesContainer');
+    const container = document.getElementById('userFixturesGroupedList');
     if (!container) return;
 
-    const filter = document.getElementById('fixtureFilter')?.value || 'all';
-    const search = document.getElementById('teamSearchInput')?.value.toLowerCase() || '';
-    const userTeam = currentUser?.team?.toLowerCase();
+    let fixtures = window.db.fixtures || [];
+    if (activeFixturesFilter === 'upcoming') fixtures = fixtures.filter(f => !f.played);
+    if (activeFixturesFilter === 'played') fixtures = fixtures.filter(f => f.played);
 
-    let list = window.db.fixtures || [];
-    if (filter === 'upcoming') list = list.filter(f => !f.played);
-    if (filter === 'played') list = list.filter(f => f.played);
-    if (search) {
-        list = list.filter(f => f.home.toLowerCase().includes(search) || f.away.toLowerCase().includes(search));
-    }
-
-    if (list.length === 0) {
-        container.innerHTML = '<p class="text-sub">No fixtures available.</p>';
+    if (fixtures.length === 0) {
+        container.innerHTML = '<p class="text-sub">No fixtures found.</p>';
         return;
     }
 
-    // Grouping by Date / Day
-    const grouped = {};
-    list.forEach(f => {
-        const key = `${f.day || 'Scheduled Date'}, ${f.date}`;
-        if (!grouped[key]) grouped[key] = [];
-        grouped[key].push(f);
+    // Group by date & weekday
+    const groups = {};
+    fixtures.forEach(f => {
+        const key = `${f.weekday}, ${f.date}`;
+        if (!groups[key]) groups[key] = [];
+        groups[key].push(f);
     });
 
-    let html = '';
-    for (const groupDate in grouped) {
-        html += `<h3 style="color:var(--epl-mint); margin: 16px 0 8px 0; font-size:14px; border-bottom:1px solid var(--epl-border); padding-bottom:4px;">${groupDate}</h3>`;
-
-        grouped[groupDate].forEach(f => {
-            const opacityStyle = f.played ? 'opacity: 0.55; filter: grayscale(30%);' : '';
-            const scoreDisplay = f.played ? `${f.scoreHome} - ${f.scoreAway}` : 'VS';
-            
-            // Highlight user's team if present
-            const isUserMatch = userTeam && (f.home.toLowerCase().includes(userTeam) || f.away.toLowerCase().includes(userTeam));
-            const highlightBorder = isUserMatch ? 'border: 2px solid var(--epl-mint); box-shadow: 0 0 10px rgba(0,255,135,0.3);' : '';
-
-            html += `
-                <div class="fixture-card card" style="margin-bottom:8px; ${opacityStyle} ${highlightBorder}">
-                    <div style="font-size:11px; color:var(--epl-cyan); font-weight:bold;">${f.time} ${f.played ? '(FINISHED)' : '(UPCOMING)'}</div>
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin: 10px 0; font-weight:bold;">
-                        <span style="font-size:14px; ${isUserMatch && f.home.toLowerCase().includes(userTeam) ? 'color:var(--epl-mint);' : ''}">${f.home}</span>
-                        <span style="background:var(--epl-pink); padding:4px 12px; border-radius:4px; font-weight:900; font-size:13px;">${scoreDisplay}</span>
-                        <span style="font-size:14px; ${isUserMatch && f.away.toLowerCase().includes(userTeam) ? 'color:var(--epl-mint);' : ''}">${f.away}</span>
+    container.innerHTML = Object.keys(groups).map(dateKey => `
+        <div style="margin-bottom:20px;">
+            <h4 style="color:var(--epl-mint); margin-bottom:10px; border-bottom:1px solid var(--epl-border); padding-bottom:6px;">${dateKey}</h4>
+            ${groups[dateKey].map(f => `
+                <div style="background:rgba(0,0,0,0.4); padding:12px; border-radius:8px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center; ${f.played ? 'opacity:0.55; filter:blur(0.3px); background:rgba(20,0,25,0.7);' : ''}">
+                    <div>
+                        <span style="font-size:11px; color:var(--epl-cyan);">${f.time}</span>
+                        <div style="font-weight:700; font-size:14px; margin-top:2px;">${f.home} vs ${f.away}</div>
+                    </div>
+                    <div>
+                        ${f.played ? `<span style="font-size:15px; font-weight:900; color:var(--epl-mint);">${f.homeScore} - ${f.awayScore}</span>` : '<span class="badge-tag">Upcoming</span>'}
                     </div>
                 </div>
-            `;
-        });
-    }
-
-    container.innerHTML = html;
+            `).join('')}
+        </div>
+    `).join('');
 }
-// DLS KITS & LOGO DATABASE
+
+function filterUserFixtures() {
+    renderUserHome();
+}
+
+// KITS DIRECTORY SOURCED FROM DLS KIT URL
 const dlsTeamsData = [
     {
-        id: "arsenal",
-        name: "Arsenal FC",
-        logo: "https://dlskits.com/wp-content/uploads/2023/07/Arsenal-DLS-Logo.png",
+        id: "spain-wc",
+        name: "Spain (World Cup)",
+        logo: "https://dlskiturl.com/wp-content/uploads/Spain-National-Team-Logo.png",
         kits: [
-            { type: "Home Kit", img: "https://dlskits.com/wp-content/uploads/2023/07/Arsenal-DLS-Kits-2023-2024-Home.png" },
-            { type: "Away Kit", img: "https://dlskits.com/wp-content/uploads/2023/07/Arsenal-DLS-Kits-2023-2024-Away.png" },
-            { type: "Third Kit", img: "https://dlskits.com/wp-content/uploads/2023/07/Arsenal-DLS-Kits-2023-2024-Third.png" },
-            { type: "GK Kit", img: "https://dlskits.com/wp-content/uploads/2023/07/Arsenal-DLS-Kits-2023-2024-GK.png" }
+            { type: "Home Kit", img: "https://dlskiturl.com/wp-content/uploads/Spain-World-Cup-Home-Kit.png" },
+            { type: "Away Kit", img: "https://dlskiturl.com/wp-content/uploads/Spain-World-Cup-Away-Kit.png" },
+            { type: "GK Kit", img: "https://dlskiturl.com/wp-content/uploads/Spain-World-Cup-GK-Kit.png" }
         ]
     },
     {
-        id: "chelsea",
-        name: "Chelsea FC",
-        logo: "https://dlskits.com/wp-content/uploads/2023/07/Chelsea-DLS-Logo.png",
+        id: "france-wc",
+        name: "France (World Cup)",
+        logo: "https://dlskiturl.com/wp-content/uploads/France-National-Team-Logo.png",
         kits: [
-            { type: "Home Kit", img: "https://dlskits.com/wp-content/uploads/2023/07/Chelsea-DLS-Kits-2023-2024-Home.png" },
-            { type: "Away Kit", img: "https://dlskits.com/wp-content/uploads/2023/07/Chelsea-DLS-Kits-2023-2024-Away.png" },
-            { type: "GK Kit", img: "https://dlskits.com/wp-content/uploads/2023/07/Chelsea-DLS-Kits-2023-2024-GK.png" }
+            { type: "Home Kit", img: "https://dlskiturl.com/wp-content/uploads/France-World-Cup-Home-Kit.png" },
+            { type: "Away Kit", img: "https://dlskiturl.com/wp-content/uploads/France-World-Cup-Away-Kit.png" },
+            { type: "GK Kit", img: "https://dlskiturl.com/wp-content/uploads/France-World-Cup-GK-Kit.png" }
         ]
     },
     {
-        id: "mancity",
-        name: "Manchester City",
-        logo: "https://dlskits.com/wp-content/uploads/2023/07/Manchester-City-DLS-Logo.png",
+        id: "argentina-wc",
+        name: "Argentina (World Cup)",
+        logo: "https://dlskiturl.com/wp-content/uploads/Argentina-National-Team-Logo.png",
         kits: [
-            { type: "Home Kit", img: "https://dlskits.com/wp-content/uploads/2023/07/Manchester-City-DLS-Kits-2023-2024-Home.png" },
-            { type: "Away Kit", img: "https://dlskits.com/wp-content/uploads/2023/07/Manchester-City-DLS-Kits-2023-2024-Away.png" },
-            { type: "Third Kit", img: "https://dlskits.com/wp-content/uploads/2023/07/Manchester-City-DLS-Kits-2023-2024-Third.png" }
+            { type: "Home Kit", img: "https://dlskiturl.com/wp-content/uploads/Argentina-World-Cup-Home-Kit.png" },
+            { type: "Away Kit", img: "https://dlskiturl.com/wp-content/uploads/Argentina-World-Cup-Away-Kit.png" },
+            { type: "Third Kit", img: "https://dlskiturl.com/wp-content/uploads/Argentina-World-Cup-Third-Kit.png" }
         ]
     },
     {
-        id: "realmadrid",
-        name: "Real Madrid",
-        logo: "https://dlskits.com/wp-content/uploads/2023/07/Real-Madrid-DLS-Logo.png",
+        id: "england-wc",
+        name: "England (World Cup)",
+        logo: "https://dlskiturl.com/wp-content/uploads/England-National-Team-Logo.png",
         kits: [
-            { type: "Home Kit", img: "https://dlskits.com/wp-content/uploads/2023/07/Real-Madrid-DLS-Kits-2023-2024-Home.png" },
-            { type: "Away Kit", img: "https://dlskits.com/wp-content/uploads/2023/07/Real-Madrid-DLS-Kits-2023-2024-Away.png" }
+            { type: "Home Kit", img: "https://dlskiturl.com/wp-content/uploads/England-World-Cup-Home-Kit.png" },
+            { type: "Away Kit", img: "https://dlskiturl.com/wp-content/uploads/England-World-Cup-Away-Kit.png" }
+        ]
+    },
+    {
+        id: "brazil-wc",
+        name: "Brazil (World Cup)",
+        logo: "https://dlskiturl.com/wp-content/uploads/Brazil-National-Team-Logo.png",
+        kits: [
+            { type: "Home Kit", img: "https://dlskiturl.com/wp-content/uploads/Brazil-World-Cup-Home-Kit.png" },
+            { type: "Away Kit", img: "https://dlskiturl.com/wp-content/uploads/Brazil-World-Cup-Away-Kit.png" }
+        ]
+    },
+    {
+        id: "portugal-wc",
+        name: "Portugal (World Cup)",
+        logo: "https://dlskiturl.com/wp-content/uploads/Portugal-National-Team-Logo.png",
+        kits: [
+            { type: "Home Kit", img: "https://dlskiturl.com/wp-content/uploads/Portugal-World-Cup-Home-Kit.png" },
+            { type: "Away Kit", img: "https://dlskiturl.com/wp-content/uploads/Portugal-World-Cup-Away-Kit.png" }
         ]
     }
 ];
 
-// RENDER TEAM CARDS ON KITS PAGE
 function renderTeamKitsGrid() {
     const grid = document.getElementById('teamKitsGrid');
     if (!grid) return;
 
     grid.innerHTML = dlsTeamsData.map(team => `
-        <div class="team-select-card" onclick="openTeamKitsModal('${team.id}')">
-            <div class="team-card-logo">
-                <img src="${team.logo}" alt="${team.name}" onerror="this.src='https://via.placeholder.com/100?text=Logo'">
+        <div class="team-select-card" onclick="openTeamKitsModal('${team.id}')" style="background:rgba(10,0,15,0.6); border:1px solid var(--epl-border); border-radius:10px; padding:16px; text-align:center; cursor:pointer; transition:all 0.2s;">
+            <div class="team-card-logo" style="width:70px; height:70px; margin:0 auto 10px; display:flex; justify-content:center; align-items:center;">
+                <img src="${team.logo}" alt="${team.name}" onerror="this.src='https://via.placeholder.com/80?text=Logo'" style="max-width:100%; max-height:100%; object-fit:contain;">
             </div>
-            <h3>${team.name}</h3>
-            <span class="badge-tag">${team.kits.length} Kits + Logo Available</span>
+            <h3 style="font-size:14px; color:#fff; margin-bottom:6px;">${team.name}</h3>
+            <span class="badge-tag">${team.kits.length} Kits + Logo</span>
         </div>
     `).join('');
 }
 
-// OPEN SPECIFIC TEAM MODAL
 function openTeamKitsModal(teamId) {
     const team = dlsTeamsData.find(t => t.id === teamId);
     if (!team) return;
 
     document.getElementById('modalTeamName').innerText = team.name;
     document.getElementById('modalTeamLogoImg').src = team.logo;
-    document.getElementById('modalLogoPreview').src = team.logo;
     document.getElementById('modalLogoUrlInput').value = team.logo;
 
     const kitsContainer = document.getElementById('modalKitsGrid');
     kitsContainer.innerHTML = team.kits.map((kit, index) => `
-        <div class="kit-modal-card">
-            <div class="kit-img-wrapper">
-                <img src="${kit.img}" alt="${kit.type}" onerror="this.src='https://via.placeholder.com/200?text=Kit+Preview'">
+        <div class="kit-modal-card" style="background:rgba(0,0,0,0.5); border:1px solid var(--epl-border); border-radius:8px; padding:12px; text-align:center;">
+            <div class="kit-img-wrapper" style="height:120px; display:flex; justify-content:center; align-items:center; margin-bottom:10px;">
+                <img src="${kit.img}" alt="${kit.type}" onerror="this.src='https://via.placeholder.com/150?text=Kit'" style="max-height:100%; object-fit:contain;">
             </div>
-            <h5>${kit.type}</h5>
-            <div class="kit-url-box">
-                <input type="text" readonly id="kitInput_${index}" value="${kit.img}" class="kit-url-input">
-                <button class="btn btn-primary" onclick="copyInputUrl('kitInput_${index}')">Copy</button>
+            <h5 style="color:#fff; font-size:13px; margin-bottom:8px;">${kit.type}</h5>
+            <div class="kit-url-box" style="display:flex; gap:6px;">
+                <input type="text" readonly id="kitInput_${index}" value="${kit.img}" class="kit-url-input" style="flex:1; padding:6px; background:#000; border:1px solid var(--epl-border); color:#fff; border-radius:4px; font-size:11px;">
+                <button class="btn btn-primary" onclick="copyInputUrl('kitInput_${index}')" style="padding:6px 10px; font-size:11px;">Copy</button>
             </div>
         </div>
     `).join('');
@@ -836,23 +454,228 @@ function openTeamKitsModal(teamId) {
     document.getElementById('teamKitsModal').classList.add('active');
 }
 
-// GENERIC CLIPBOARD COPY FUNCTION
 function copyInputUrl(inputId) {
     const inputEl = document.getElementById(inputId);
     if (!inputEl) return;
 
     inputEl.select();
     navigator.clipboard.writeText(inputEl.value).then(() => {
-        alert("Copied to clipboard! Ready to paste into DLS customization menu.");
+        alert("Copied to clipboard! Paste directly inside DLS 26 Custom Kit menu.");
     });
 }
 
-// Call renderer on page initialization
-window.addEventListener('DOMContentLoaded', () => {
-    renderTeamKitsGrid();
-});
+// USER: FRIENDS & CHAT
+function renderFriendsPage() {
+    if (!currentUser) return;
+    const container = document.getElementById('friendsListContainer');
+    if (!container) return;
 
-// Convert uploaded device file to Base64 for tournament background
+    const query = (document.getElementById('friendSearchInput')?.value || '').toLowerCase();
+    const otherUsers = window.db.users.filter(u => u.id !== currentUser.id && u.role !== 'admin');
+
+    const filtered = otherUsers.filter(u => u.name.toLowerCase().includes(query) || u.team.toLowerCase().includes(query));
+
+    if (filtered.length === 0) {
+        container.innerHTML = '<p class="text-sub">No players found.</p>';
+        return;
+    }
+
+    container.innerHTML = filtered.map(u => {
+        const isFriend = currentUser.friends.includes(u.id);
+        const hasRequested = currentUser.friendRequests && currentUser.friendRequests.includes(u.id);
+
+        return `
+            <div style="background:rgba(0,0,0,0.4); padding:10px; border-radius:8px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <div style="position:relative;">
+                        <img src="${u.pic || 'https://via.placeholder.com/40'}" style="width:40px; height:40px; border-radius:50%; object-fit:cover;">
+                        <span style="position:absolute; bottom:0; right:0; width:10px; height:10px; border-radius:50%; background:${u.online ? 'var(--epl-mint)' : '#666'}; border:2px solid #000;"></span>
+                    </div>
+                    <div>
+                        <div style="font-weight:700; font-size:13px;">${u.name}</div>
+                        <div style="font-size:11px; color:var(--epl-text-sub);">${u.team}</div>
+                    </div>
+                </div>
+                <div>
+                    ${isFriend ? `<button class="btn btn-primary" onclick="selectChatFriend(${u.id})" style="padding:6px 12px; font-size:11px;">Chat</button>` :
+                      hasRequested ? `<span class="badge-tag">Request Sent</span>` :
+                      `<button class="btn" onclick="sendFriendRequest(${u.id})" style="padding:6px 12px; font-size:11px; background:var(--epl-pink); color:#fff;">Add Friend</button>`
+                    }
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+function sendFriendRequest(targetId) {
+    const target = window.db.users.find(u => u.id === targetId);
+    if (!target) return;
+
+    target.friendRequests = target.friendRequests || [];
+    if (!target.friendRequests.includes(currentUser.id)) {
+        target.friendRequests.push(currentUser.id);
+        window.db.notifications.push({
+            id: Date.now(),
+            userId: target.id,
+            text: `${currentUser.name} sent you a friend request!`
+        });
+        alert("Friend request sent!");
+        renderAll();
+    }
+}
+
+function selectChatFriend(friendId) {
+    activeChatFriendId = friendId;
+    const friend = window.db.users.find(u => u.id === friendId);
+    if (!friend) return;
+
+    document.getElementById('chatHeaderTitle').innerText = `Chat with ${friend.name} (${friend.team})`;
+    document.getElementById('chatForm').style.display = 'flex';
+    renderChatMessages();
+}
+
+function renderChatMessages() {
+    const container = document.getElementById('chatBoxContainer');
+    if (!container || !activeChatFriendId) return;
+
+    const msgs = window.db.messages.filter(m => 
+        (m.senderId === currentUser.id && m.receiverId === activeChatFriendId) ||
+        (m.senderId === activeChatFriendId && m.receiverId === currentUser.id)
+    );
+
+    if (msgs.length === 0) {
+        container.innerHTML = '<p class="text-sub">No messages yet. Say hello!</p>';
+        return;
+    }
+
+    container.innerHTML = msgs.map(m => `
+        <div style="margin-bottom:8px; text-align:${m.senderId === currentUser.id ? 'right' : 'left'};">
+            <span style="display:inline-block; padding:6px 10px; border-radius:8px; background:${m.senderId === currentUser.id ? 'var(--epl-purple)' : 'rgba(255,255,255,0.1)'}; color:#fff; font-size:12px;">${m.text}</span>
+        </div>
+    `).join('');
+    container.scrollTop = container.scrollHeight;
+}
+
+function handleSendMessage(e) {
+    e.preventDefault();
+    if (!activeChatFriendId) return;
+
+    const input = document.getElementById('chatMessageInput');
+    const text = input.value.trim();
+    if (!text) return;
+
+    window.db.messages.push({
+        id: Date.now(),
+        senderId: currentUser.id,
+        receiverId: activeChatFriendId,
+        text
+    });
+
+    input.value = '';
+    renderChatMessages();
+}
+
+// USER: PROFILE
+function renderProfilePage() {
+    if (!currentUser) return;
+    document.getElementById('profileFullName').value = currentUser.name;
+    document.getElementById('profileTeamName').value = currentUser.team;
+    document.getElementById('profilePicUrl').value = currentUser.pic || '';
+    document.getElementById('profilePreviewImg').src = currentUser.pic || 'https://via.placeholder.com/100?text=Avatar';
+}
+
+function handleUpdateProfile(e) {
+    e.preventDefault();
+    if (!currentUser) return;
+
+    currentUser.name = document.getElementById('profileFullName').value.trim();
+    currentUser.team = document.getElementById('profileTeamName').value.trim();
+    currentUser.pic = document.getElementById('profilePicUrl').value.trim();
+    const newPass = document.getElementById('profilePassword').value.trim();
+
+    if (newPass) currentUser.pass = newPass;
+
+    alert("Profile updated successfully!");
+    renderAll();
+}
+
+// NOTIFICATIONS SYSTEM
+function openNotifications() {
+    if (!currentUser) return;
+    const userNotifs = window.db.notifications.filter(n => n.userId === currentUser.id);
+
+    // Also check friend requests
+    let reqsHtml = '';
+    if (currentUser.friendRequests && currentUser.friendRequests.length > 0) {
+        reqsHtml = '<h4 style="color:var(--epl-mint); margin-bottom:8px;">Friend Requests</h4>';
+        reqsHtml += currentUser.friendRequests.map(reqId => {
+            const reqUser = window.db.users.find(u => u.id === reqId);
+            return `
+                <div style="background:rgba(0,0,0,0.4); padding:8px; border-radius:6px; margin-bottom:6px; display:flex; justify-content:space-between; align-items:center;">
+                    <span>${reqUser ? reqUser.name : 'User'} wants to connect</span>
+                    <button class="btn btn-primary" onclick="acceptFriendRequest(${reqId})" style="padding:4px 8px; font-size:11px;">Accept</button>
+                </div>
+            `;
+        }).join('');
+    }
+
+    let notifHtml = '<h4 style="color:var(--epl-cyan); margin-bottom:8px; margin-top:10px;">Notifications</h4>';
+    if (userNotifs.length === 0) {
+        notifHtml += '<p style="font-size:12px; color:var(--epl-text-sub);">No new notifications.</p>';
+    } else {
+        notifHtml += userNotifs.map(n => `<div style="background:rgba(0,0,0,0.4); padding:8px; border-radius:6px; margin-bottom:6px; font-size:12px;">${n.text}</div>`).join('');
+    }
+
+    alert(currentUser.friendRequests?.length ? "You have pending friend requests or notifications!" : "No pending notifications.");
+}
+
+function acceptFriendRequest(reqId) {
+    currentUser.friendRequests = currentUser.friendRequests.filter(id => id !== reqId);
+    if (!currentUser.friends.includes(reqId)) currentUser.friends.push(reqId);
+
+    const reqUser = window.db.users.find(u => u.id === reqId);
+    if (reqUser) {
+        reqUser.friends = reqUser.friends || [];
+        if (!reqUser.friends.includes(currentUser.id)) reqUser.friends.push(currentUser.id);
+    }
+
+    alert("Friend request accepted!");
+    renderAll();
+}
+
+function renderNotificationsBadge() {
+    const badge = document.getElementById('notifBadge');
+    if (!badge || !currentUser) return;
+    const count = (window.db.notifications.filter(n => n.userId === currentUser.id).length) + (currentUser.friendRequests?.length || 0);
+    badge.innerText = count;
+}
+
+// ADMIN: DASHBOARD & MANAGEMENT
+function renderAdminDashboard() {
+    document.getElementById('statTotalUsers').innerText = window.db.users.filter(u => u.role !== 'admin').length;
+    document.getElementById('statTotalTournaments').innerText = window.db.tournaments.length;
+    document.getElementById('statTotalFixtures').innerText = window.db.fixtures.length;
+
+    // Users roster table
+    const tbody = document.getElementById('adminUsersTableBody');
+    if (tbody) {
+        tbody.innerHTML = window.db.users.map((u, index) => `
+            <tr>
+                <td>${index + 1}</td>
+                <td>${u.name}</td>
+                <td>${u.team}</td>
+                <td>${u.pass}</td>
+                <td><span class="badge-tag" style="background:${u.online ? 'rgba(0,255,135,0.1)' : 'rgba(255,255,255,0.05)'}; color:${u.online ? 'var(--epl-mint)' : '#888'};">${u.online ? 'Online' : 'Offline'}</span></td>
+                <td><button class="btn" onclick="deleteUser(${u.id})" style="background:var(--epl-pink); color:#fff; padding:4px 8px; font-size:11px;">Delete</button></td>
+            </tr>
+        `).join('');
+    }
+
+    renderAdminTournamentsList();
+    renderAdminFixturesManagement();
+    renderAdminModeration();
+}
+
 function previewTournBgFile(e) {
     const file = e.target.files[0];
     if (!file) return;
@@ -872,26 +695,217 @@ function handleCreateTournament(e) {
     const rules = document.getElementById('adminTournRules').value.trim();
     const bgImage = document.getElementById('adminTournBgBase64').value.trim();
 
-    if (!name) {
-        return alert("Tournament name is required.");
-    }
+    if (!name) return alert("Tournament name is required.");
 
-    const newTournament = {
+    window.db.tournaments.push({
         id: Date.now(),
-        name: name,
-        rules: rules || "No specific rules provided.",
+        name,
+        rules: rules || "No rules specified.",
         bgImage: bgImage || ""
-    };
+    });
 
-    window.db.tournaments = window.db.tournaments || [];
-    window.db.tournaments.push(newTournament);
-
-    // Reset form fields
     document.getElementById('adminTournName').value = '';
     document.getElementById('adminTournRules').value = '';
     document.getElementById('adminTournFile').value = '';
     document.getElementById('adminTournBgBase64').value = '';
 
-    alert("Tournament created with device background successfully!");
+    alert("Tournament created successfully!");
     updateAndSync();
+}
+
+function renderAdminTournamentsList() {
+    const container = document.getElementById('adminTournamentsList');
+    if (!container) return;
+
+    const list = window.db.tournaments || [];
+    if (list.length === 0) {
+        container.innerHTML = '<p class="text-sub">No tournaments.</p>';
+        return;
+    }
+
+    container.innerHTML = list.map(t => `
+        <div style="background:rgba(0,0,0,0.4); padding:12px; border-radius:8px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
+            <div>
+                <div style="font-weight:700;">${t.name}</div>
+                <div style="font-size:11px; color:var(--epl-text-sub);">${t.rules.substring(0, 50)}...</div>
+            </div>
+            <button class="btn" onclick="deleteTournament(${t.id})" style="background:var(--epl-pink); color:#fff; padding:6px 10px; font-size:11px;">Delete</button>
+        </div>
+    `).join('');
+}
+
+function deleteTournament(id) {
+    window.db.tournaments = window.db.tournaments.filter(t => t.id !== id);
+    window.db.fixtures = window.db.fixtures.filter(f => f.tournId !== id);
+    updateAndSync();
+}
+
+// ADMIN: FIXTURES MANAGEMENT
+function calcWeekday(e) {
+    const dateVal = e.target.value;
+    if (!dateVal) return;
+    const d = new Date(dateVal);
+    const options = { weekday: 'long' };
+    const dayName = d.toLocaleDateString('en-US', options);
+    document.getElementById('displayWeekday').innerText = `Weekday: ${dayName}`;
+    window.tempSelectedWeekday = dayName;
+}
+
+function renderAdminFixturesManagement() {
+    const tournSelect = document.getElementById('fixTournSelect');
+    const homeSelect = document.getElementById('fixHomeTeam');
+    const awaySelect = document.getElementById('fixAwayTeam');
+
+    if (tournSelect) {
+        tournSelect.innerHTML = window.db.tournaments.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
+    }
+
+    const regularUsers = window.db.users.filter(u => u.role !== 'admin');
+    if (homeSelect && awaySelect) {
+        const optionsHtml = regularUsers.map(u => `<option value="${u.team}">${u.team} (${u.name})</option>`).join('');
+        homeSelect.innerHTML = optionsHtml;
+        awaySelect.innerHTML = optionsHtml;
+    }
+
+    const container = document.getElementById('adminFixturesManagementList');
+    if (!container) return;
+
+    const fixtures = window.db.fixtures || [];
+    if (fixtures.length === 0) {
+        container.innerHTML = '<p class="text-sub">No fixtures scheduled.</p>';
+        return;
+    }
+
+    container.innerHTML = fixtures.map(f => `
+        <div style="background:rgba(0,0,0,0.5); padding:14px; border-radius:8px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center;">
+            <div>
+                <span style="font-size:11px; color:var(--epl-cyan);">${f.weekday}, ${f.date} | ${f.time}</span>
+                <div style="font-weight:700; font-size:14px; margin-top:2px;">${f.home} vs ${f.away}</div>
+            </div>
+            <div style="display:flex; align-items:center; gap:8px;">
+                ${f.played ? `<span style="font-size:13px; font-weight:700; color:var(--epl-mint);">${f.homeScore} - ${f.awayScore} (Played)</span>` : `
+                    <input type="number" id="homeScore_${f.id}" placeholder="Home" style="width:50px; padding:6px; background:#000; border:1px solid var(--epl-border); color:#fff; border-radius:4px;">
+                    <span>-</span>
+                    <input type="number" id="awayScore_${f.id}" placeholder="Away" style="width:50px; padding:6px; background:#000; border:1px solid var(--epl-border); color:#fff; border-radius:4px;">
+                    <button class="btn btn-primary" onclick="submitMatchResult(${f.id})" style="padding:6px 10px; font-size:11px;">Save</button>
+                `}
+                <button class="btn" onclick="deleteFixture(${f.id})" style="background:var(--epl-pink); color:#fff; padding:6px 10px; font-size:11px;">Delete</button>
+            </div>
+        </div>
+    `).join('');
+}
+
+function handleCreateFixture(e) {
+    e.preventDefault();
+    const tournId = parseInt(document.getElementById('fixTournSelect').value);
+    const home = document.getElementById('fixHomeTeam').value;
+    const away = document.getElementById('fixAwayTeam').value;
+    const date = document.getElementById('fixDate').value;
+    const time = document.getElementById('fixTime').value;
+    const weekday = window.tempSelectedWeekday || 'Thursday';
+
+    if (home === away) {
+        return alert("Home team and Away team cannot be the same.");
+    }
+
+    window.db.fixtures.push({
+        id: Date.now(),
+        tournId,
+        home,
+        away,
+        date,
+        weekday,
+        time,
+        played: false,
+        homeScore: null,
+        awayScore: null
+    });
+
+    alert("Fixture scheduled successfully!");
+    updateAndSync();
+}
+
+function submitMatchResult(fixId) {
+    const homeInput = document.getElementById(`homeScore_${fixId}`);
+    const awayInput = document.getElementById(`awayScore_${fixId}`);
+
+    const homeScore = parseInt(homeInput.value);
+    const awayScore = parseInt(awayInput.value);
+
+    if (isNaN(homeScore) || isNaN(awayScore)) {
+        return alert("Please enter valid scores for both teams.");
+    }
+
+    const fixture = window.db.fixtures.find(f => f.id === fixId);
+    if (fixture) {
+        fixture.played = true;
+        fixture.homeScore = homeScore;
+        fixture.awayScore = awayScore;
+
+        // Notify users
+        window.db.users.forEach(u => {
+            if (u.role !== 'admin') {
+                window.db.notifications.push({
+                    id: Date.now() + Math.random(),
+                    userId: u.id,
+                    text: `Match Result: ${fixture.home} ${homeScore} - ${awayScore} ${fixture.away}`
+                });
+            }
+        });
+
+        alert("Match result updated successfully!");
+        updateAndSync();
+    }
+}
+
+function deleteFixture(id) {
+    window.db.fixtures = window.db.fixtures.filter(f => f.id !== id);
+    updateAndSync();
+}
+
+function handleSendAdminNotification(e) {
+    e.preventDefault();
+    const text = document.getElementById('adminNotifText').value.trim();
+    if (!text) return;
+
+    window.db.users.forEach(u => {
+        if (u.role !== 'admin') {
+            window.db.notifications.push({
+                id: Date.now() + Math.random(),
+                userId: u.id,
+                text: `[Admin Broadcast]: ${text}`
+            });
+        }
+    });
+
+    document.getElementById('adminNotifText').value = '';
+    alert("Notification broadcasted to all users successfully!");
+    updateAndSync();
+}
+
+function deleteUser(id) {
+    window.db.users = window.db.users.filter(u => u.id !== id);
+    updateAndSync();
+}
+
+function renderAdminModeration() {
+    const tbody = document.getElementById('adminModerationTableBody');
+    if (!tbody) return;
+
+    const users = window.db.users.filter(u => u.role !== 'admin');
+    tbody.innerHTML = users.map(u => `
+        <tr>
+            <td>${u.name}</td>
+            <td>${u.team}</td>
+            <td>Player</td>
+            <td>
+                <button class="btn" onclick="deleteUser(${u.id})" style="background:var(--epl-pink); color:#fff; padding:4px 8px; font-size:11px;">Ban / Delete</button>
+            </td>
+        </tr>
+    `).join('');
+}
+
+// GENERAL UTILS
+function closeModal(modalId) {
+    document.getElementById(modalId)?.classList.remove('active');
 }
