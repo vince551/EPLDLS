@@ -7,9 +7,10 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-<div class="bg-animation-layer">
-    <div class="floating-ball">⚽</div>
-</div>
+    <div class="bg-animation-layer">
+        <div class="floating-ball">⚽</div>
+    </div>
+    
     <div class="marquee-container">
         <div class="marquee-text" id="topPlayerBanner">
             🏆 TOP PLAYER OF THE DAY: LOADING MATCH RESULTS... 🏆
@@ -28,371 +29,385 @@
             <button class="nav-btn" onclick="showPage('userKits')">Kits</button>
             <button class="nav-btn" onclick="showPage('userFriends')">Friends</button>
             <button class="nav-btn" onclick="showPage('userProfile')">Profile</button>
-            <div class="notification-bell" onclick="openNotifications()">🔔<span class="badge" id="notifBadge">0</span></div>
+            <div class="notification-bell" onclick="openNotifications()" style="cursor:pointer; display:inline-block; position:relative; margin-right:10px;">
+                🔔<span class="badge" id="notifBadge" style="position:absolute; top:-5px; right:-10px; background:var(--epl-pink); color:#fff; font-size:10px; padding:2px 5px; border-radius:10px;">0</span>
+            </div>
             <button class="nav-btn nav-btn-logout" onclick="logout()">Logout</button>
         </nav>
 
         <nav id="adminNav" style="display:none;">
-            <button class="nav-btn active" onclick="showPage('adminHome')">Members</button>
+            <button class="nav-btn active" onclick="showPage('adminDashboard')">Dashboard</button>
             <button class="nav-btn" onclick="showPage('adminTournaments')">Tournaments</button>
             <button class="nav-btn" onclick="showPage('adminFixtures')">Fixtures</button>
-            <button class="nav-btn" onclick="showPage('adminNotifications')">Notifications</button>
+            <button class="nav-btn" onclick="showPage('adminUsers')">Users</button>
             <button class="nav-btn nav-btn-logout" onclick="logout()">Logout</button>
         </nav>
     </header>
 
-<main class="container">
+    <div class="container">
 
-    <section id="authPage" class="page active">
-        <div class="auth-container">
-            <div class="auth-toggle">
-                <div id="toggleLogin" class="active" onclick="switchAuthTab('login')">Login</div>
-                <div id="toggleReg" onclick="switchAuthTab('reg')">Register</div>
+        <section id="authPage" class="page active">
+            <div class="card" style="max-width: 450px; margin: 40px auto;">
+                <div class="card-header">
+                    <span id="authTitle">Player Login</span>
+                    <span style="font-size: 11px; color: var(--epl-mint);">EPL DLS Season 26</span>
+                </div>
+                
+                <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+                    <button class="btn btn-primary" id="loginTabBtn" onclick="switchAuthTab('login')" style="flex:1;">Login</button>
+                    <button class="btn" id="registerTabBtn" onclick="switchAuthTab('register')" style="flex:1; background:rgba(255,255,255,0.06); color:#fff;">Register</button>
+                </div>
+
+                <form id="loginForm" onsubmit="handleLogin(event)">
+                    <div class="form-group">
+                        <label for="loginName">Username / Name</label>
+                        <input type="text" id="loginName" required placeholder="Enter username (e.g. Admin or Alex Mercer)">
+                    </div>
+                    <div class="form-group">
+                        <label for="loginPass">Password</label>
+                        <input type="password" id="loginPass" required placeholder="Enter password">
+                    </div>
+                    <button class="btn btn-primary" type="submit" style="width: 100%; margin-bottom: 12px;">Login to Hub</button>
+                    <div style="text-align: center;">
+                        <a href="#" onclick="openModal('forgotPassModal')" style="color: var(--epl-cyan); font-size: 12px; text-decoration: none;">Forgot Password?</a>
+                    </div>
+                </form>
+
+                <form id="registerForm" onsubmit="handleRegister(event)" style="display:none;">
+                    <div class="form-group">
+                        <label for="regName">Full Name</label>
+                        <input type="text" id="regName" required placeholder="Enter your full name">
+                    </div>
+                    <div class="form-group">
+                        <label for="regTeam">DLS Team Name</label>
+                        <input type="text" id="regTeam" required placeholder="Enter your Dream League team name">
+                    </div>
+                    <div class="form-group">
+                        <label for="regPass">Password</label>
+                        <input type="password" id="regPass" required placeholder="Create a password">
+                    </div>
+                    <button class="btn btn-primary" type="submit" style="width: 100%;">Create Account</button>
+                </form>
+            </div>
+        </section>
+
+        <section id="userHome" class="page">
+            <div class="card">
+                <div class="card-header">
+                    <span>Active Tournaments Overview</span>
+                    <span style="font-size: 11px; color: var(--epl-mint);">Live Hub Feed</span>
+                </div>
+                <div class="form-group" style="margin-bottom: 20px;">
+                    <input type="text" id="userTeamSearch" placeholder="Search for your team name to locate fixtures..." oninput="filterUserFixtures()">
+                </div>
+                <div id="userTournamentsFeed">
+                    </div>
+            </div>
+        </section>
+
+        <section id="userTournaments" class="page">
+            <div class="card">
+                <div class="card-header">
+                    <span>Available Tournaments</span>
+                    <span style="font-size: 11px; color: var(--epl-cyan);">Select tournament to review fixtures & rules</span>
+                </div>
+                <div id="tournamentsListContainer" class="dashboard-grid">
+                    </div>
+            </div>
+        </section>
+
+        <section id="userFixtures" class="page">
+            <div class="card">
+                <div class="card-header">
+                    <span>Match Fixtures & Results</span>
+                    <span style="font-size: 11px; color: var(--epl-mint);">Grouped by Date</span>
+                </div>
+                <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+                    <button class="btn btn-primary" onclick="filterFixturesTab('all')">All Matches</button>
+                    <button class="btn" onclick="filterFixturesTab('upcoming')" style="background:rgba(255,255,255,0.06); color:#fff;">Upcoming</button>
+                    <button class="btn" onclick="filterFixturesTab('played')" style="background:rgba(255,255,255,0.06); color:#fff;">Completed</button>
+                </div>
+                <div id="userFixturesGroupedList">
+                    </div>
+            </div>
+        </section>
+
+        <section id="userKits" class="page">
+            <div class="card video-guide-card">
+                <div class="card-header">
+                    <span>📹 How to Import Kits into DLS 26</span>
+                    <span style="font-size: 11px; color: var(--epl-cyan);">Step-by-step Video Guide</span>
+                </div>
+                <p style="font-size: 13px; color: var(--epl-text-sub); margin-bottom: 14px;">
+                    Watch this quick tutorial to learn how to copy PNG URLs and import custom kits into Dream League Soccer.
+                </p>
+                <div class="video-container">
+                    <iframe 
+                        src="https://www.youtube.com/embed/BzQwrd648O0" 
+                        title="How to Import Custom Kits in Dream League Soccer" 
+                        frameborder="0" 
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
+                        allowfullscreen>
+                    </iframe>
+                </div>
             </div>
 
-            <form id="loginForm" onsubmit="handleLogin(event)">
-                <div class="form-group">
-                    <label for="loginUser">Username / Name</label>
-                    <input type="text" id="loginUser" required placeholder="Enter your username">
+            <div class="card">
+                <div class="card-header">
+                    <span>DLS 26 National & Club Kits Directory</span>
+                    <span style="font-size: 11px; color: var(--epl-mint);">Select a team to access Logo & Kits</span>
                 </div>
-                <div class="form-group">
-                    <label for="loginPass">Password</label>
-                    <input type="password" id="loginPass" required placeholder="••••••••">
-                </div>
-<p style="text-align: right; margin-top: 4px;">
-    <a href="#" class="auth-forgot-link" onclick="document.getElementById('forgotPassModal').classList.add('active')">Forgot Password?</a>
-</p>
-                <button class="btn btn-primary" type="submit">Access Hub</button>
-            </form>
-
-            <form id="regForm" onsubmit="handleRegister(event)" style="display:none;">
-                <div class="form-group">
-                    <label for="regName">Full Name</label>
-                    <input type="text" id="regName" required placeholder="e.g. John Terry">
-                </div>
-                <div class="form-group">
-                    <label for="regTeam">Team Name</label>
-                    <input type="text" id="regTeam" required placeholder="e.g. Chelsea FC">
-                </div>
-                <div class="form-group">
-                    <label for="regPass">Password</label>
-                    <input type="password" id="regPass" required placeholder="••••••••">
-                </div>
-                <button class="btn btn-primary" type="submit">Create Account</button>
-            </form>
-        </div>
-    </section>
-
-    <section id="userHome" class="page">
-        <div class="card">
-            <div class="card-header">Search Team Fixtures</div>
-            <input type="text" id="teamSearchInput" placeholder="Enter team name to filter fixtures..." onkeyup="renderUserFixtures()">
-        </div>
-        <div class="card">
-            <div class="card-header">Active Tournaments</div>
-            <div id="userHomeTournaments"></div>
-        </div>
-    </section>
-
-    <section id="userTournaments" class="page">
-        <div class="card">
-            <div class="card-header">Available Tournaments</div>
-            <div id="userTournamentList"></div>
-        </div>
-    </section>
-
-    <section id="userFixtures" class="page">
-        <div class="card">
-            <div class="card-header">
-                <span>Fixtures & Schedules</span>
-                <select id="fixtureFilter" onchange="renderUserFixtures()" class="inline-select">
-                    <option value="all">All Matches</option>
-                    <option value="upcoming">Upcoming Matches</option>
-                    <option value="played">Played Matches</option>
-                </select>
+                <p style="font-size: 13px; color: var(--epl-text-sub); margin-bottom: 20px;">
+                    Click on any card to view and copy direct PNG URLs for Dream League Soccer.
+                </p>
+                <div class="team-kits-grid" id="teamKitsGrid">
+                    </div>
             </div>
-            <div id="fixturesContainer"></div>
-        </div>
-    </section>
-<section id="userKits" class="page">
-    
-    <div class="card video-guide-card">
-        <div class="card-header">
-            <span>📹 How to Import Kits into DLS 26</span>
-            <span style="font-size: 11px; color: var(--epl-cyan);">Step-by-step Video Guide</span>
-        </div>
-        <p style="font-size: 13px; color: var(--epl-text-sub); margin-bottom: 14px;">
-            Watch this quick tutorial to learn how to copy PNG URLs and import custom kits into Dream League Soccer.
-        </p>
-        <div class="video-container">
-            <iframe 
-                src="https://www.youtube.com/embed/BzQwrd648O0" 
-                title="How to Import Custom Kits in Dream League Soccer" 
-                frameborder="0" 
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
-                allowfullscreen>
-            </iframe>
-        </div>
+        </section>
+
+        <section id="userFriends" class="page">
+            <div class="dashboard-grid">
+                <div class="card" style="margin-bottom:0;">
+                    <div class="card-header"><span>Friends List</span></div>
+                    <div class="form-group">
+                        <input type="text" id="friendSearchInput" placeholder="Search registered user..." oninput="renderFriendsPage()">
+                    </div>
+                    <div id="friendsListContainer"></div>
+                </div>
+                <div class="card" style="margin-bottom:0;">
+                    <div class="card-header"><span id="chatHeaderTitle">Chat Room</span></div>
+                    <div id="chatBoxContainer" style="height:250px; background:rgba(0,0,0,0.4); border:1px solid var(--epl-border); border-radius:8px; padding:12px; overflow-y:auto; margin-bottom:12px; font-size:13px;">
+                        <p class="text-sub">Select an accepted friend from your list to start chatting.</p>
+                    </div>
+                    <form id="chatForm" onsubmit="handleSendMessage(event)" style="display:none; display:flex; gap:8px;">
+                        <input type="text" id="chatMessageInput" required placeholder="Type message..." style="flex:1;">
+                        <button class="btn btn-primary" type="submit">Send</button>
+                    </form>
+                </div>
+            </div>
+        </section>
+
+        <section id="userProfile" class="page">
+            <div class="card" style="max-width: 600px; margin: 0 auto;">
+                <div class="card-header"><span>Player Profile Settings</span></div>
+                <form onsubmit="handleUpdateProfile(event)">
+                    <div style="text-align: center; margin-bottom: 20px;">
+                        <img id="profilePreviewImg" src="https://via.placeholder.com/100?text=Avatar" alt="Profile" style="width: 90px; height: 90px; border-radius: 50%; object-fit: cover; border: 2px solid var(--epl-mint); margin-bottom: 10px;">
+                    </div>
+                    <div class="form-group">
+                        <label for="profilePicUrl">Profile Picture URL</label>
+                        <input type="text" id="profilePicUrl" placeholder="Paste image URL here">
+                    </div>
+                    <div class="form-group">
+                        <label for="profileFullName">Full Name</label>
+                        <input type="text" id="profileFullName" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="profileTeamName">DLS Team Name</label>
+                        <input type="text" id="profileTeamName" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="profilePassword">New Password (optional)</label>
+                        <input type="password" id="profilePassword" placeholder="Leave blank to keep current password">
+                    </div>
+                    <button class="btn btn-primary" type="submit" style="width: 100%;">Save Changes</button>
+                </form>
+            </div>
+        </section>
+
+        <section id="adminDashboard" class="page">
+            <div class="dashboard-grid">
+                <div class="stat-box">
+                    <h4>Total Registered Players</h4>
+                    <span id="statTotalUsers">0</span>
+                </div>
+                <div class="stat-box">
+                    <h4>Active Tournaments</h4>
+                    <span id="statTotalTournaments">0</span>
+                </div>
+                <div class="stat-box">
+                    <h4>Scheduled Fixtures</h4>
+                    <span id="statTotalFixtures">0</span>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <span>Registered Members Roster</span>
+                    <span style="font-size: 11px; color: var(--epl-mint);">System Database</span>
+                </div>
+                <div style="overflow-x:auto;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>No.</th>
+                                <th>Name</th>
+                                <th>Team Name</th>
+                                <th>Password</th>
+                                <th>Status</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="adminUsersTableBody">
+                            </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header"><span>Broadcast System Notification</span></div>
+                <form onsubmit="handleSendAdminNotification(event)">
+                    <div class="form-group">
+                        <label for="adminNotifText">Notification Message</label>
+                        <input type="text" id="adminNotifText" required placeholder="Type notification broadcast for all users...">
+                    </div>
+                    <button class="btn btn-primary" type="submit">Broadcast Notification</button>
+                </form>
+            </div>
+        </section>
+
+        <section id="adminTournaments" class="page">
+            <div class="dashboard-grid">
+                <div class="card" style="margin-bottom:0;">
+                    <div class="card-header"><span>Create New Tournament</span></div>
+                    <form onsubmit="handleCreateTournament(event)">
+                        <div class="form-group">
+                            <label for="adminTournName">Tournament Name</label>
+                            <input type="text" id="adminTournName" required placeholder="e.g. DLS Champions League">
+                        </div>
+                        <div class="form-group">
+                            <label for="adminTournRules">Tournament Rules</label>
+                            <textarea id="adminTournRules" rows="4" placeholder="Enter tournament rules..." style="width:100%; padding:10px; background:rgba(10,0,15,0.7); border:1px solid var(--epl-border); color:#fff; border-radius:8px;"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="adminTournFile">Tournament Background Image (From Device)</label>
+                            <input type="file" id="adminTournFile" accept="image/*" onchange="previewTournBgFile(event)">
+                            <input type="hidden" id="adminTournBgBase64">
+                        </div>
+                        <button class="btn btn-primary" type="submit">Create Tournament</button>
+                    </form>
+                </div>
+                <div class="card" style="margin-bottom:0;">
+                    <div class="card-header"><span>Active Tournaments & Rules</span></div>
+                    <div id="adminTournamentsList"></div>
+                </div>
+            </div>
+        </section>
+
+        <section id="adminFixtures" class="page">
+            <div class="card">
+                <div class="card-header"><span>Schedule Fixtures & Input Results</span></div>
+                <form onsubmit="handleCreateFixture(event)" style="margin-bottom: 24px;">
+                    <div class="dashboard-grid" style="margin-bottom: 12px;">
+                        <div class="form-group" style="margin-bottom:0;">
+                            <label for="fixTournSelect">Select Tournament</label>
+                            <select id="fixTournSelect" required style="width:100%; padding:10px; background:rgba(10,0,15,0.7); border:1px solid var(--epl-border); color:#fff; border-radius:8px;"></select>
+                        </div>
+                        <div class="form-group" style="margin-bottom:0;">
+                            <label for="fixHomeTeam">Home Team</label>
+                            <select id="fixHomeTeam" required style="width:100%; padding:10px; background:rgba(10,0,15,0.7); border:1px solid var(--epl-border); color:#fff; border-radius:8px;"></select>
+                        </div>
+                        <div class="form-group" style="margin-bottom:0;">
+                            <label for="fixAwayTeam">Away Team</label>
+                            <select id="fixAwayTeam" required style="width:100%; padding:10px; background:rgba(10,0,15,0.7); border:1px solid var(--epl-border); color:#fff; border-radius:8px;"></select>
+                        </div>
+                    </div>
+                    <div class="dashboard-grid" style="margin-bottom: 16px;">
+                        <div class="form-group" style="margin-bottom:0;">
+                            <label for="fixDate">Match Date (Auto Weekday)</label>
+                            <input type="date" id="fixDate" required onchange="calcWeekday(event)" style="width:100%; padding:10px; background:rgba(10,0,15,0.7); border:1px solid var(--epl-border); color:#fff; border-radius:8px;">
+                            <span id="displayWeekday" style="font-size:11px; color:var(--epl-mint); margin-top:4px; display:block;">Select date...</span>
+                        </div>
+                        <div class="form-group" style="margin-bottom:0;">
+                            <label for="fixTime">Match Time</label>
+                            <input type="time" id="fixTime" required style="width:100%; padding:10px; background:rgba(10,0,15,0.7); border:1px solid var(--epl-border); color:#fff; border-radius:8px;">
+                        </div>
+                    </div>
+                    <button class="btn btn-primary" type="submit">Schedule Fixture</button>
+                </form>
+                <div id="adminFixturesManagementList"></div>
+            </div>
+        </section>
+
+        <section id="adminUsers" class="page">
+            <div class="card">
+                <div class="card-header"><span>User & Team Moderation</span></div>
+                <div style="overflow-x:auto;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Team Name</th>
+                                <th>Role</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="adminModerationTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
     </div>
 
-    <div class="card">
-        <div class="card-header">
-            <span>DLS Club Kits Directory</span>
-            <span style="font-size: 11px; color: var(--epl-mint);">Select a team to access Logo & Kits</span>
-        </div>
-        <p style="font-size: 13px; color: var(--epl-text-sub); margin-bottom: 20px;">
-            Click on any club card to view and copy their DLS kit URLs and logo.
-        </p>
-
-        <div class="team-kits-grid" id="teamKitsGrid">
-            </div>
-    </div>
-
-</section>
-
-<div id="teamKitsModal" class="modal">
-    <div class="modal-content card" style="max-width: 720px; width: 95%;">
-        <div class="card-header">
-            <div style="display: flex; align-items: center; gap: 10px;">
-                <img id="modalTeamLogoImg" src="" alt="Team Logo" style="width: 32px; height: 32px; object-fit: contain;">
-                <span id="modalTeamName">Club Name</span>
-            </div>
-            <button class="btn-close" onclick="closeModal('teamKitsModal')">✕</button>
-        </div>
-
-        <div class="kit-item-box" style="margin-bottom: 20px;">
-            <h4 style="color: var(--epl-cyan); font-size: 13px; margin-bottom: 8px;">CLUB LOGO</h4>
-            <div style="display: flex; align-items: center; gap: 12px; background: rgba(0,0,0,0.5); padding: 12px; border-radius: 8px; border: 1px solid var(--epl-border);">
-                <img id="modalLogoPreview" src="" style="width: 60px; height: 60px; object-fit: contain;">
-                <div style="flex: 1;">
-                    <input type="text" readonly id="modalLogoUrlInput" class="kit-url-input">
-                </div>
-                <button class="btn btn-primary" onclick="copyInputUrl('modalLogoUrlInput')">Copy Logo URL</button>
-            </div>
-        </div>
-
-        <h4 style="color: var(--epl-mint); font-size: 14px; margin-bottom: 12px;">AVAILABLE KITS</h4>
-        <div class="modal-kits-grid" id="modalKitsGrid">
-            </div>
-    </div>
-</div>
-
-    <section id="adminHome" class="page">
-        <div class="card">
+    <div id="forgotPassModal" class="modal">
+        <div class="modal-content card" style="max-width:400px; margin: 100px auto;">
             <div class="card-header">
-                <span>Registered Members Directory</span>
-                <span id="onlineUsersCount" class="badge" style="position:static; padding:4px 10px;">Online: 0</span>
+                <span>Reset Password</span>
+                <button class="btn-close" onclick="closeModal('forgotPassModal')" style="background:none; border:none; color:#fff; cursor:pointer;">✕</button>
             </div>
-            <div style="overflow-x:auto;">
-                <table style="width:100%; border-collapse:collapse; text-align:left; font-size:13px;">
-                    <thead>
-                        <tr style="border-bottom: 2px solid var(--epl-border); color:var(--epl-mint);">
-                            <th style="padding:10px;">No.</th>
-                            <th style="padding:10px;">Status</th>
-                            <th style="padding:10px;">Name</th>
-                            <th style="padding:10px;">Team Name</th>
-                            <th style="padding:10px;">Password</th>
-                            <th style="padding:10px;">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="adminMembersTableBody">
-                        </tbody>
-                </table>
-            </div>
-        </div>
-    </section>
-
-    <section id="adminTournaments" class="page">
-        <div class="card">
-            <div class="card-header">Create New Tournament</div>
-            <form onsubmit="handleCreateTournament(event)">
+            <form onsubmit="handleForgotPassword(event)">
                 <div class="form-group">
-                    <label for="adminTournName">Tournament Title</label>
-                    <input type="text" id="adminTournName" placeholder="e.g. DLS Champions League" required>
+                    <label for="resetName">Registered Name</label>
+                    <input type="text" id="resetName" required placeholder="Enter your full name">
                 </div>
                 <div class="form-group">
-                    <label for="adminTournRules">Tournament Rules</label>
-                    <textarea id="adminTournRules" rows="3" placeholder="Enter tournament rules and regulations..."></textarea>
+                    <label for="resetNewPass">New Password</label>
+                    <input type="password" id="resetNewPass" required placeholder="Enter new password">
                 </div>
-                <button class="btn btn-primary" type="submit">Publish Tournament</button>
+                <button class="btn btn-primary" type="submit" style="width:100%;">Reset Password</button>
             </form>
-        </div>
-
-        <div class="card">
-            <div class="card-header">Active Tournaments & Rules Management</div>
-            <div id="adminTournamentsList"></div>
-        </div>
-
-        <div class="form-group">
-    <label for="adminTournFile">Tournament Background Image (From Device)</label>
-    <input type="file" id="adminTournFile" accept="image/*" onchange="previewTournBgFile(event)">
-    <input type="hidden" id="adminTournBgBase64"> </div>
-    </section>
-
-    <section id="adminFixtures" class="page">
-        <div class="card">
-            <div class="card-header">Schedule & Generate Fixture</div>
-            <form onsubmit="handleCreateFixture(event)">
-                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
-                    <div class="form-group">
-                        <label for="fixtureHomeSelect">Home Team</label>
-                        <select id="fixtureHomeSelect" required></select>
-                    </div>
-                    <div class="form-group">
-                        <label for="fixtureAwaySelect">Away Team</label>
-                        <select id="fixtureAwaySelect" required></select>
-                    </div>
-                </div>
-
-                <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:12px;">
-                    <div class="form-group">
-                        <label for="fixtureDate">Match Date</label>
-                        <input type="date" id="fixtureDate" required onchange="handleDateChange(this.value)">
-                    </div>
-                    <div class="form-group">
-                        <label for="fixtureDay">Weekday (Auto-calculated)</label>
-                        <input type="text" id="fixtureDay" readonly placeholder="Calculated day...">
-                    </div>
-                    <div class="form-group">
-                        <label for="fixtureTime">Match Time</label>
-                        <input type="time" id="fixtureTime" required>
-                    </div>
-                </div>
-
-                <button class="btn btn-primary" type="submit">Create Fixture</button>
-            </form>
-        </div>
-
-        <div class="card">
-            <div class="card-header">Manage Fixtures & Result Entry</div>
-            <div id="adminFixturesList"></div>
-        </div>
-    </section>
-
-    <section id="adminNotifications" class="page">
-        <div class="card">
-            <div class="card-header">Broadcast System Notification</div>
-            <form onsubmit="handleSendNotification(event)">
-                <div class="form-group">
-                    <label for="notifType">Notification Type</label>
-                    <select id="notifType">
-                        <option value="General">General Announcement</option>
-                        <option value="Tournament">Tournament Notice</option>
-                        <option value="Fixture">Fixture Schedule Update</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="notifMessage">Notification Message</label>
-                    <textarea id="notifMessage" rows="3" placeholder="Enter broadcast message for all players..." required></textarea>
-                </div>
-                <button class="btn btn-primary" type="submit">Send Notification</button>
-            </form>
-        </div>
-
-        <div class="card">
-            <div class="card-header">Sent Broadcast Logs</div>
-            <div id="adminNotificationLogs"></div>
-        </div>
-    </section>
-
-</main>
-
-    <div id="notifModal" class="modal">
-        <div class="modal-content card">
-            <div class="card-header">
-                <span>Notifications</span>
-                <button class="btn-close" onclick="closeModal('notifModal')">✖</button>
-            </div>
-            <div id="notifContainer"></div>
         </div>
     </div>
 
     <div id="openTournModal" class="modal">
-        <div class="modal-content card">
+        <div class="modal-content card" style="max-width:600px; margin: 40px auto;">
             <div class="card-header">
-                <span id="modalTournTitle">Tournament Hub</span>
-                <button class="btn-close" onclick="closeModal('openTournModal')">✖</button>
+                <span id="modalTournTitle">Tournament Details</span>
+                <button class="btn-close" onclick="closeModal('openTournModal')" style="background:none; border:none; color:#fff; cursor:pointer;">✕</button>
             </div>
-            <p id="modalTournRules" style="margin-bottom:12px; color:var(--epl-text-sub);"></p>
-            <div id="modalTournFixtures"></div>
+            <div style="margin-bottom:15px;">
+                <h4 style="color:var(--epl-mint); margin-bottom:6px;">Tournament Rules</h4>
+                <p id="modalTournRules" style="font-size:13px; color:var(--epl-text-sub); white-space:pre-line;"></p>
+            </div>
+            <div>
+                <h4 style="color:var(--epl-mint); margin-bottom:8px;">Tournament Fixtures</h4>
+                <div id="modalTournFixturesList"></div>
+            </div>
         </div>
     </div>
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-        import { getFirestore, doc, onSnapshot, setDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+    <div id="teamKitsModal" class="modal">
+        <div class="modal-content card" style="max-width:850px; margin: 20px auto; max-height:90vh; overflow-y:auto;">
+            <div class="card-header">
+                <span id="modalTeamName">Team Kits</span>
+                <button class="btn-close" onclick="closeModal('teamKitsModal')" style="background:none; border:none; color:#fff; cursor:pointer; font-size:18px;">✕</button>
+            </div>
+            <div style="display: flex; align-items: center; gap: 20px; background: rgba(10,0,15,0.6); padding: 16px; border-radius: 10px; margin-bottom: 20px; border: 1px solid var(--epl-border);">
+                <img id="modalTeamLogoImg" src="" alt="Logo" style="width: 70px; height: 70px; object-fit: contain;">
+                <div style="flex: 1;">
+                    <h4 style="color:#fff; margin-bottom:6px;">Club Emblem PNG URL</h4>
+                    <div class="kit-url-box" style="display:flex; gap:10px;">
+                        <input type="text" readonly id="modalLogoUrlInput" class="kit-url-input" style="flex:1; padding:8px; background:#000; border:1px solid var(--epl-border); color:#fff; border-radius:6px; font-size:12px;">
+                        <button class="btn btn-primary" onclick="copyInputUrl('modalLogoUrlInput')">Copy Logo</button>
+                    </div>
+                </div>
+            </div>
+            <h4 style="color: var(--epl-mint); margin-bottom: 12px;">Available Kits</h4>
+            <div class="modal-kits-grid" id="modalKitsGrid"></div>
+        </div>
+    </div>
 
-        const firebaseConfig = {
-            apiKey: "AIzaSyBFmoC6lratNk0VEl0MvMU1SXDEMmiVGjE",
-            authDomain: "epl-dls.firebaseapp.com",
-            projectId: "epl-dls",
-            storageBucket: "epl-dls.firebasestorage.app",
-            messagingSenderId: "804359174860",
-            appId: "1:804359174860:web:e288304b36b7ae76b6e069",
-            measurementId: "G-HFMWQRMYR6"
-        };
-
-        const app = initializeApp(firebaseConfig);
-        const dbStore = getFirestore(app);
-        const hubRef = doc(dbStore, "tournaments", "main_hub");
-
-        onSnapshot(hubRef, (snapshot) => {
-            if (snapshot.exists()) {
-                window.db = snapshot.data();
-            } else if (window.db) {
-                setDoc(hubRef, window.db);
-            }
-            if (typeof window.renderAll === "function") {
-                window.renderAll();
-            }
-        });
-
-        window.saveToFirebase = async function() {
-            if (!window.db) return;
-            try {
-                await setDoc(hubRef, window.db);
-            } catch (err) {
-                console.error("Firestore Sync Error:", err);
-            }
-        };
-    </script>
     <script src="app.js"></script>
-
-    <div id="forgotPassModal" class="modal">
-    <div class="modal-content card">
-        <div class="card-header">
-            <span>Reset Password</span>
-            <button class="btn-close" onclick="closeModal('forgotPassModal')">✕</button>
-        </div>
-        <form onsubmit="handleForgotPassword(event)">
-            <div class="form-group">
-                <label for="resetName">Registered Name</label>
-                <input type="text" id="resetName" required placeholder="Enter your full name">
-            </div>
-            <div class="form-group">
-                <label for="resetNewPass">New Password</label>
-                <input type="password" id="resetNewPass" required placeholder="Enter new password">
-            </div>
-            <button class="btn btn-primary" type="submit">Reset Password</button>
-        </form>
-    </div>
-</div>
-
-<div id="openTournModal" class="modal">
-    <div class="modal-content card">
-        <div class="card-header">
-            <span id="modalTournTitle">Tournament Details</span>
-            <button class="btn-close" onclick="closeModal('openTournModal')">✕</button>
-        </div>
-        <div style="margin-bottom:15px;">
-            <h4 style="color:var(--epl-mint);">Tournament Rules</h4>
-            <p id="modalTournRules" style="font-size:13px; color:var(--epl-text-sub); white-space:pre-line; margin-top:6px;"></p>
-        </div>
-        <div>
-            <h4 style="color:var(--epl-mint); margin-bottom:8px;">Tournament Fixtures</h4>
-            <div id="modalTournFixtures"></div>
-        </div>
-    </div>
-</div>
 </body>
 </html>
