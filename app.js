@@ -285,8 +285,88 @@ function openTournamentDetails(id) {
     document.getElementById('modalTournRules').innerText = t.rules;
 
     const tFixtures = window.db.fixtures.filter(f => f.tournId === t.id);
-    const container = document.getElementById('modalTournFixturesList');
 
+    // 1. Calculate Standings Dynamically from Fixtures & Registered Users
+    const stats = {};
+    
+    // Initialize all registered teams with 0 stats
+    window.db.users.forEach(u => {
+        if (u.role !== 'admin' && u.team) {
+            stats[u.team] = { played: 0, won: 0, drawn: 0, lost: 0, gf: 0, ga: 0, pts: 0 };
+        }
+    });
+
+    // Also catch any team in fixtures that might not be in the direct user list yet
+    tFixtures.forEach(f => {
+        if (!stats[f.home]) stats[f.home] = { played: 0, won: 0, drawn: 0, lost: 0, gf: 0, ga: 0, pts: 0 };
+        if (!stats[f.away]) stats[f.away] = { played: 0, won: 0, drawn: 0, lost: 0, gf: 0, ga: 0, pts: 0 };
+
+        if (f.played && f.homeScore !== null && f.awayScore !== null) {
+            const hStats = stats[f.home];
+            const aStats = stats[f.away];
+
+            hStats.played += 1;
+            aStats.played += 1;
+
+            hStats.gf += f.homeScore;
+            hStats.ga += f.awayScore;
+            aStats.gf += f.awayScore;
+            aStats.ga += f.homeScore;
+
+            if (f.homeScore > f.awayScore) {
+                hStats.won += 1;
+                hStats.pts += 3;
+                aStats.lost += 1;
+            } else if (f.homeScore < f.awayScore) {
+                aStats.won += 1;
+                aStats.pts += 3;
+                hStats.lost += 1;
+            } else {
+                hStats.drawn += 1;
+                hStats.pts += 1;
+                aStats.drawn += 1;
+                aStats.pts += 1;
+            }
+        }
+    });
+
+    // Convert stats object to sorted array (Sort by Points desc, then Goal Difference desc, then Goals For desc)
+    const standingsArray = Object.keys(stats).map(teamName => {
+        const s = stats[teamName];
+        return {
+            team: teamName,
+            ...s,
+            gd: s.gf - s.ga
+        };
+    }).sort((a, b) => {
+        if (b.pts !== a.pts) return b.pts - a.pts;
+        if (b.gd !== a.gd) return b.gd - a.gd;
+        return b.gf - a.gf;
+    });
+
+    // Render Standings Table Body
+    const standingsBody = document.getElementById('modalTournStandingsBody');
+    if (standingsArray.length === 0 || standingsArray.every(s => s.played === 0 && s.pts === 0 && Object.keys(stats).length === 0)) {
+        standingsBody.innerHTML = `<tr><td colspan="10" style="text-align:center; color:var(--epl-text-sub);">No match stats available yet.</td></tr>`;
+    } else {
+        standingsBody.innerHTML = standingsArray.map((row, index) => `
+            <tr style="${currentUser && row.team === currentUser.team ? 'background:rgba(0,255,135,0.08); font-weight:bold;' : ''}">
+                <td>${index + 1}</td>
+                <td>${row.team}</td>
+                <td>${row.played}</td>
+                <td>${row.won}</td>
+                <td>${row.drawn}</td>
+                <td>${row.lost}</td>
+                <td>${row.gf}</td>
+                <td>${row.ga}</td>
+                <td>${row.gd > 0 ? '+' + row.gd : row.gd}</td>
+                <td style="color:var(--epl-mint); font-weight:900;">${row.pts}</td>
+            </tr>
+        `).join('');
+    }
+
+    // Render Fixtures Inside Modal
+    const container = document.getElementById('modalTournFixturesList');
     if (tFixtures.length === 0) {
         container.innerHTML = '<p style="font-size:13px; color:var(--epl-text-sub);">No fixtures scheduled for this tournament yet.</p>';
     } else {
