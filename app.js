@@ -197,6 +197,7 @@ function renderAll() {
         renderUserWelcomeHero();
         renderUserHome();
         renderTournamentsList();
+        renderFixturesSummaryBar();
         renderUserFixturesGrouped();
         renderFriendsPage();
         renderProfilePage();
@@ -521,28 +522,55 @@ function renderTournamentsList() {
     const container = document.getElementById('tournamentsListContainer');
     if (!container) return;
 
-    const tournaments = window.db.tournaments || [];
+    const searchQ = (document.getElementById('tournamentSearch')?.value || '').toLowerCase();
+    let tournaments = window.db.tournaments || [];
+
+    if (searchQ) {
+        tournaments = tournaments.filter(t => t.name.toLowerCase().includes(searchQ));
+    }
+
     if (tournaments.length === 0) {
-        container.innerHTML = `<div style="text-align:center;padding:32px 0;"><div style="font-size:36px;">🏆</div><p style="color:var(--epl-text-sub);font-size:12px;margin-top:8px;">No tournaments available yet.</p></div>`;
+        container.innerHTML = `
+            <div style="text-align:center;padding:40px 0;grid-column:1/-1;">
+                <div style="font-size:40px;margin-bottom:10px;">🏆</div>
+                <div style="font-size:13px;color:var(--epl-text-sub);font-weight:700;">${searchQ ? 'No tournaments match your search' : 'No tournaments available yet'}</div>
+                <div style="font-size:11px;color:#555;margin-top:4px;">Check back soon for upcoming tournaments!</div>
+            </div>`;
         return;
     }
 
     container.innerHTML = tournaments.map(t => {
         const tFixtures = (window.db.fixtures || []).filter(f => f.tournId === t.id);
         const playedCount = tFixtures.filter(f => f.played).length;
+        const upcomingCount = tFixtures.filter(f => !f.played).length;
+        const myFixtures = currentUser ? tFixtures.filter(f => f.home === currentUser.team || f.away === currentUser.team).length : 0;
+        const progress = tFixtures.length > 0 ? Math.round((playedCount / tFixtures.length) * 100) : 0;
+
         return `
-            <div class="card mb-0" style="cursor:pointer;transition:transform 0.2s;" onmouseover="this.style.transform='scale(1.01)'" onmouseout="this.style.transform='scale(1)'" onclick="openTournamentDetails(${t.id})">
-                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-                    <span style="font-size:20px;">🏆</span>
-                    <span style="font-size:10px;background:rgba(0,255,135,0.1);border:1px solid rgba(0,255,135,0.2);color:var(--epl-mint);padding:2px 8px;border-radius:20px;font-weight:800;">${playedCount}/${tFixtures.length} Played</span>
+            <div class="tourn-list-card" onclick="openTournamentDetails(${t.id})" ${t.bgImage ? `style="background: linear-gradient(rgba(15,5,29,0.90), rgba(15,5,29,0.97)), url('${t.bgImage}'); background-size:cover; background-position:center;"` : ''}>
+                <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px;">
+                    <span style="font-size:24px;line-height:1;">🏆</span>
+                    <span style="font-size:10px;background:rgba(0,255,135,0.1);border:1px solid rgba(0,255,135,0.25);color:var(--epl-mint);padding:3px 10px;border-radius:20px;font-weight:800;">${playedCount}/${tFixtures.length}</span>
                 </div>
-                <div style="font-size:13px;font-weight:900;color:#fff;margin-bottom:6px;">${t.name}</div>
-                <p style="font-size:11px;color:var(--epl-text-sub);margin-bottom:12px;line-height:1.4;">${(t.rules || '').substring(0, 80)}...</p>
-                <button class="btn btn-primary" style="width:100%;font-size:11px;padding:8px;">📋 View Details & Standings ➔</button>
+                <div style="font-size:14px;font-weight:900;color:#fff;margin-bottom:5px;line-height:1.2;">${t.name}</div>
+                <p style="font-size:11px;color:var(--epl-text-sub);margin-bottom:12px;line-height:1.5;">${(t.rules || '').substring(0, 75)}${(t.rules || '').length > 75 ? '...' : ''}</p>
+                <!-- Progress Bar -->
+                <div style="height:3px;background:rgba(255,255,255,0.08);border-radius:3px;margin-bottom:10px;overflow:hidden;">
+                    <div style="height:100%;width:${progress}%;background:linear-gradient(90deg, var(--epl-mint), var(--epl-cyan));border-radius:3px;transition:width 0.5s;"></div>
+                </div>
+                <!-- Stats Row -->
+                <div style="display:flex;gap:8px;margin-bottom:12px;">
+                    <span style="font-size:10px;color:var(--epl-cyan);font-weight:700;">⏰ ${upcomingCount} upcoming</span>
+                    <span style="font-size:10px;color:var(--epl-text-sub);">|</span>
+                    <span style="font-size:10px;color:var(--epl-mint);font-weight:700;">✅ ${playedCount} played</span>
+                    ${myFixtures > 0 ? `<span style="font-size:10px;color:var(--epl-text-sub);">|</span><span style="font-size:10px;color:#ffd700;font-weight:700;">⭐ ${myFixtures} mine</span>` : ''}
+                </div>
+                <button class="btn btn-primary" style="width:100%;font-size:11px;padding:9px;">📋 View Fixtures & Standings ➔</button>
             </div>
         `;
     }).join('');
 }
+
 
 function openTournamentDetails(id) {
     const t = (window.db.tournaments || []).find(x => x.id === id);
@@ -629,9 +657,29 @@ function openTournamentDetails(id) {
 }
 
 // USER: FIXTURES GROUPED BY DATE
-function filterFixturesTab(filter) {
+function filterFixturesTab(filter, btn) {
     activeFixturesFilter = filter;
+    // Highlight active tab
+    document.querySelectorAll('.filter-tab').forEach(b => b.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+    renderFixturesSummaryBar();
     renderUserFixturesGrouped();
+}
+
+function renderFixturesSummaryBar() {
+    const bar = document.getElementById('fixturesSummaryBar');
+    if (!bar) return;
+    const all = window.db.fixtures || [];
+    const total = all.length;
+    const played = all.filter(f => f.played).length;
+    const upcoming = all.filter(f => !f.played).length;
+    const myMatches = currentUser ? all.filter(f => f.home === currentUser.team || f.away === currentUser.team).length : 0;
+    bar.innerHTML = `
+        <span class="summary-pill total">📋 ${total} Total</span>
+        <span class="summary-pill upcoming">⏰ ${upcoming} Upcoming</span>
+        <span class="summary-pill played">✅ ${played} Played</span>
+        <span class="summary-pill" style="border-color:rgba(255,215,0,0.3);color:#ffd700;">⭐ ${myMatches} Mine</span>
+    `;
 }
 
 function renderUserFixturesGrouped() {
@@ -844,7 +892,6 @@ function renderFriendsPage() {
     container.innerHTML = filtered.map(u => {
         const isFriend = (currentUser.friends || []).includes(u.id);
         const hasRequested = (currentUser.friendRequests || []).includes(u.id);
-
         return `
             <div class="friend-card">
                 <div style="display:flex;align-items:center;gap:10px;min-width:0;">
@@ -870,6 +917,38 @@ function renderFriendsPage() {
     }).join('');
 }
 
+// FRIENDS TAB TOGGLE (Players / Chat panels)
+function switchFriendsTab(tab) {
+    const friendsPanel = document.getElementById('friendsPanel');
+    const chatPanel = document.getElementById('chatPanel');
+    const friendsBtn = document.getElementById('friendsTabBtn');
+    const chatBtn = document.getElementById('chatTabBtn');
+    if (!friendsPanel || !chatPanel) return;
+    if (tab === 'list') {
+        friendsPanel.style.display = '';
+        chatPanel.style.display = 'none';
+        friendsBtn?.classList.add('active');
+        chatBtn?.classList.remove('active');
+    } else {
+        friendsPanel.style.display = 'none';
+        chatPanel.style.display = '';
+        chatBtn?.classList.add('active');
+        friendsBtn?.classList.remove('active');
+        const box = document.getElementById('chatBoxContainer');
+        if (box) setTimeout(() => { box.scrollTop = box.scrollHeight; }, 50);
+    }
+}
+
+// PROFILE: Live preview avatar
+function previewProfilePic() {
+    const url = document.getElementById('profilePicUrl')?.value?.trim();
+    const img = document.getElementById('profilePreviewImg');
+    if (!img) return;
+    img.src = url || 'https://via.placeholder.com/100?text=⚽';
+    img.onerror = () => { img.src = 'https://via.placeholder.com/100?text=⚽'; };
+}
+
+
 async function sendFriendRequest(targetId) {
     if (!currentUser) return;
     try {
@@ -887,11 +966,15 @@ async function sendFriendRequest(targetId) {
 async function selectChatFriend(friendId) {
     activeChatFriendId = friendId;
     const friend = (window.db.users || []).find(u => u.id === friendId);
-
-    document.getElementById('chatHeaderTitle').innerHTML = friend ? `💬 Chat with ${friend.name} (${friend.team})` : '💬 Chat Room';
-    document.getElementById('chatForm').style.display = 'flex';
+    // Auto-switch to chat tab on mobile
+    switchFriendsTab('chat');
+    const header = document.getElementById('chatHeaderTitle');
+    if (header) header.innerHTML = friend ? `💬 ${friend.name} · 👕 ${friend.team}` : '💬 Chat Room';
+    const form = document.getElementById('chatForm');
+    if (form) form.style.display = 'flex';
     await renderChatMessages();
 }
+
 
 async function renderChatMessages() {
     const container = document.getElementById('chatBoxContainer');
@@ -901,22 +984,23 @@ async function renderChatMessages() {
         const msgs = await apiFetch(`/messages.php?action=list&user_id=${currentUser.id}&friend_id=${activeChatFriendId}`).catch(() => []);
 
         if (msgs.length === 0) {
-            container.innerHTML = '<p class="text-sub text-center py-6">No messages yet. Say hello!</p>';
+            container.innerHTML = `<div class="chat-empty-state"><div style="font-size:28px;margin-bottom:6px;">👋</div><p>No messages yet — say hello!</p></div>`;
             return;
         }
 
-        container.innerHTML = msgs.map(m => `
-            <div class="mb-2 text-${m.senderId === currentUser.id ? 'right' : 'left'}">
-                <span class="inline-block px-3 py-1.5 rounded-lg ${m.senderId === currentUser.id ? 'bg-epl-purple text-white border border-epl-mint/30' : 'bg-white/10 text-white'} text-xs max-w-[80%] break-words">
-                    ${m.message || m.text}
-                </span>
-            </div>
-        `).join('');
+        container.innerHTML = msgs.map(m => {
+            const isMe = m.senderId === currentUser.id;
+            return `
+                <div class="${isMe ? 'chat-msg-me' : 'chat-msg-other'}">
+                    <div class="chat-bubble ${isMe ? 'chat-bubble-me' : 'chat-bubble-other'}">${m.message || m.text}</div>
+                </div>`;
+        }).join('');
         container.scrollTop = container.scrollHeight;
     } catch (e) {
-        container.innerHTML = '<p class="text-sub text-center py-4">Unable to load messages.</p>';
+        container.innerHTML = `<div class="chat-empty-state"><p style="color:var(--epl-pink);">Unable to load messages.</p></div>`;
     }
 }
+
 
 async function handleSendMessage(e) {
     e.preventDefault();
@@ -947,37 +1031,33 @@ function renderProfilePage() {
     document.getElementById('profilePreviewImg').src = currentUser.pic || 'https://via.placeholder.com/100?text=⚽';
     document.getElementById('profilePreviewImg').onerror = function() { this.src = 'https://via.placeholder.com/100?text=⚽'; };
 
-    // Inject profile stats row above form if not already rendered
-    const form = document.querySelector('#userProfile form');
-    if (form && !document.getElementById('profileStatsRow')) {
-        const statsRow = document.createElement('div');
-        statsRow.id = 'profileStatsRow';
-        const myFixtures = (window.db.fixtures || []).filter(f => f.home === currentUser.team || f.away === currentUser.team);
-        const myWins = myFixtures.filter(f => f.played && ((f.home === currentUser.team && f.homeScore > f.awayScore) || (f.away === currentUser.team && f.awayScore > f.homeScore))).length;
-        const myPlayed = myFixtures.filter(f => f.played).length;
-        const myFriends = (currentUser.friends || []).length;
-        statsRow.innerHTML = `
-            <div class="profile-stat-row">
-                <div class="profile-stat-pill">
-                    <div class="label">📅 Matches</div>
-                    <div class="value">${myPlayed}</div>
-                </div>
-                <div class="profile-stat-pill">
-                    <div class="label">🏆 Wins</div>
-                    <div class="value">${myWins}</div>
-                </div>
-                <div class="profile-stat-pill">
-                    <div class="label">👥 Friends</div>
-                    <div class="value">${myFriends}</div>
-                </div>
-                <div class="profile-stat-pill">
-                    <div class="label">⭐ Level</div>
-                    <div class="value" style="color:var(--epl-cyan);">Pro</div>
-                </div>
+    // Refresh stats row every render
+    const statsContainer = document.getElementById('profileStatsRow');
+    if (!statsContainer) return;
+    const myFixtures = (window.db.fixtures || []).filter(f => f.home === currentUser.team || f.away === currentUser.team);
+    const myWins = myFixtures.filter(f => f.played && ((f.home === currentUser.team && f.homeScore > f.awayScore) || (f.away === currentUser.team && f.awayScore > f.homeScore))).length;
+    const myPlayed = myFixtures.filter(f => f.played).length;
+    const myFriends = (currentUser.friends || []).length;
+    statsContainer.innerHTML = `
+        <div class="profile-stat-row">
+            <div class="profile-stat-pill">
+                <div class="label">📅 Matches</div>
+                <div class="value">${myPlayed}</div>
             </div>
-        `;
-        form.insertBefore(statsRow, form.querySelector('.form-group'));
-    }
+            <div class="profile-stat-pill">
+                <div class="label">🏆 Wins</div>
+                <div class="value">${myWins}</div>
+            </div>
+            <div class="profile-stat-pill">
+                <div class="label">👥 Friends</div>
+                <div class="value">${myFriends}</div>
+            </div>
+            <div class="profile-stat-pill">
+                <div class="label">⭐ Level</div>
+                <div class="value" style="color:var(--epl-cyan);">Pro</div>
+            </div>
+        </div>
+    `;
 }
 
 async function handleUpdateProfile(e) {

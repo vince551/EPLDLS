@@ -239,128 +239,175 @@
 
         <!-- USER TOURNAMENTS -->
         <section id="userTournaments" class="page">
-            <div class="card">
-                <div class="card-header">
-                    <span class="flex items-center gap-2">🏆 Available Tournaments</span>
-                    <span class="text-xs text-epl-cyan font-semibold">Select tournament to review fixtures & rules</span>
+            <!-- Page Hero Header -->
+            <div class="page-hero">
+                <div class="page-hero-icon">🏆</div>
+                <div>
+                    <div class="page-hero-title">Tournaments</div>
+                    <div class="page-hero-sub">Tap any card to view standings & fixtures</div>
                 </div>
-                <div id="tournamentsListContainer" class="dashboard-grid"></div>
             </div>
+            <!-- Tournament Search -->
+            <div class="search-bar-wrap">
+                <svg class="search-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                <input type="text" id="tournamentSearch" class="search-input" placeholder="Search tournaments..." oninput="renderTournamentsList()">
+            </div>
+            <div id="tournamentsListContainer" class="user-card-grid"></div>
         </section>
 
         <!-- USER FIXTURES -->
         <section id="userFixtures" class="page">
-            <div class="card">
-                <div class="card-header">
-                    <span class="flex items-center gap-2">📅 Match Fixtures & Results</span>
-                    <span class="text-xs text-epl-mint font-semibold">Grouped by Date</span>
+            <!-- Page Hero Header -->
+            <div class="page-hero">
+                <div class="page-hero-icon">📅</div>
+                <div>
+                    <div class="page-hero-title">Match Fixtures</div>
+                    <div class="page-hero-sub">All scheduled & completed matches</div>
                 </div>
-                <div class="flex gap-2 mb-4 overflow-x-auto pb-2">
-                    <button class="btn btn-primary text-xs py-2 px-4" onclick="filterFixturesTab('all')">📋 All Matches</button>
-                    <button class="btn bg-white/10 text-white text-xs py-2 px-4" onclick="filterFixturesTab('upcoming')">⏰ Upcoming</button>
-                    <button class="btn bg-white/10 text-white text-xs py-2 px-4" onclick="filterFixturesTab('played')">✅ Completed</button>
-                    <button class="btn bg-epl-purple/80 text-epl-mint border border-epl-mint/40 text-xs py-2 px-4" onclick="filterFixturesTab('my_team')">⭐ My Matches</button>
-                </div>
-                <div id="userFixturesGroupedList"></div>
             </div>
+            <!-- Filter Tabs -->
+            <div class="filter-tabs-row" id="fixtureFilterTabs">
+                <button class="filter-tab active" data-filter="all" onclick="filterFixturesTab('all', this)">📋 All</button>
+                <button class="filter-tab" data-filter="upcoming" onclick="filterFixturesTab('upcoming', this)">⏰ Upcoming</button>
+                <button class="filter-tab" data-filter="played" onclick="filterFixturesTab('played', this)">✅ Results</button>
+                <button class="filter-tab" data-filter="my_team" onclick="filterFixturesTab('my_team', this)">⭐ My Matches</button>
+            </div>
+            <!-- Fixtures Summary Bar -->
+            <div class="fixtures-summary-bar" id="fixturesSummaryBar"></div>
+            <!-- Grouped Fixtures List -->
+            <div id="userFixturesGroupedList"></div>
         </section>
 
         <!-- KITS DIRECTORY & TUTORIAL GUIDE -->
         <section id="userKits" class="page">
-            <div class="card video-guide-card mb-6">
-                <div class="card-header">
-                    <span class="flex items-center gap-2">▶️ How to Import Kits into DLS 26</span>
-                    <span class="text-xs text-epl-cyan font-semibold">Video Walkthrough</span>
-                </div>
-                <p class="text-xs text-gray-300 mb-4">
-                    Watch this quick tutorial to learn how to copy PNG URLs and import custom logos and kits directly into Dream League Soccer.
-                </p>
-                <div class="video-container relative aspect-video w-full rounded-lg overflow-hidden border border-epl-border">
-                    <iframe 
-                        src="https://www.youtube.com/embed/BzQwrd648O0" 
-                        title="How to Import Custom Kits in Dream League Soccer" 
-                        class="w-full h-full"
-                        frameborder="0" 
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
-                        allowfullscreen>
-                    </iframe>
+            <div class="page-hero">
+                <div class="page-hero-icon">👕</div>
+                <div>
+                    <div class="page-hero-title">DLS 26 Kits Directory</div>
+                    <div class="page-hero-sub">Copy PNG URLs for logos & kits</div>
                 </div>
             </div>
 
-            <div class="card">
-                <div class="card-header">
-                    <span class="flex items-center gap-2">👕 DLS 26 National & Club Kits Directory</span>
-                    <span class="text-xs text-epl-mint font-semibold">Select team for PNG URLs</span>
-                </div>
-                <p class="text-xs text-gray-300 mb-6">
-                    Click on any club card below to view and copy direct PNG URLs for logos and kits.
-                </p>
-                <div class="team-kits-grid" id="teamKitsGrid"></div>
+            <!-- How-to Steps -->
+            <div class="howto-steps">
+                <div class="howto-step"><span class="howto-num">1</span><span>Pick a club below</span></div>
+                <div class="howto-arrow">→</div>
+                <div class="howto-step"><span class="howto-num">2</span><span>Copy the PNG URL</span></div>
+                <div class="howto-arrow">→</div>
+                <div class="howto-step"><span class="howto-num">3</span><span>Paste in DLS 26</span></div>
             </div>
+
+            <!-- Video Tutorial Collapsible -->
+            <details class="video-details mb-4">
+                <summary class="video-summary">
+                    <span>▶️ Watch: How to Import Kits into DLS 26</span>
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                </summary>
+                <div class="video-container mt-3">
+                    <iframe src="https://www.youtube.com/embed/BzQwrd648O0" title="Import Kits DLS 26" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                </div>
+            </details>
+
+            <!-- Kits Search -->
+            <div class="search-bar-wrap mb-4">
+                <svg class="search-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                <input type="text" id="kitsSearch" class="search-input" placeholder="Search club or league..." oninput="renderTeamKitsGrid()">
+            </div>
+
+            <div class="team-kits-grid" id="teamKitsGrid"></div>
         </section>
 
         <!-- FRIENDS & CHAT HUB -->
         <section id="userFriends" class="page">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div class="card mb-0">
-                    <div class="card-header">
-                        <span class="flex items-center gap-2">👥 Friends List</span>
-                    </div>
-                    <div class="form-group mb-3">
-                        <input type="text" id="friendSearchInput" placeholder="Search registered user..." oninput="renderFriendsPage()" class="text-xs p-2.5">
-                    </div>
-                    <div id="friendsListContainer"></div>
+            <div class="page-hero">
+                <div class="page-hero-icon">💬</div>
+                <div>
+                    <div class="page-hero-title">Friends & Chat</div>
+                    <div class="page-hero-sub">Connect with other DLS players</div>
                 </div>
-                <div class="card mb-0">
-                    <div class="card-header">
-                        <span id="chatHeaderTitle" class="flex items-center gap-2">💬 Chat Room</span>
-                    </div>
-                    <div id="chatBoxContainer" style="height:280px;" class="bg-black/40 border border-epl-border rounded-lg p-3 overflow-y-auto mb-3 text-xs">
-                        <p class="text-gray-400 text-center py-8">Select an accepted friend from your list to start chatting.</p>
-                    </div>
-                    <form id="chatForm" onsubmit="handleSendMessage(event)" class="flex gap-2" style="display:none;">
-                        <input type="text" id="chatMessageInput" required placeholder="Type message..." class="flex-1 text-xs p-2">
-                        <button class="btn btn-primary px-4 py-2 text-xs" type="submit">🚀 Send</button>
-                    </form>
+            </div>
+
+            <!-- Friends/Chat Tab Toggle -->
+            <div class="friends-tab-toggle">
+                <button class="friends-tab active" id="friendsTabBtn" onclick="switchFriendsTab('list')">👥 Players</button>
+                <button class="friends-tab" id="chatTabBtn" onclick="switchFriendsTab('chat')">💬 Chat</button>
+            </div>
+
+            <!-- Players Panel -->
+            <div id="friendsPanel">
+                <div class="search-bar-wrap mb-3">
+                    <svg class="search-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                    <input type="text" id="friendSearchInput" class="search-input" placeholder="Search player or team name..." oninput="renderFriendsPage()">
                 </div>
+                <div id="friendsListContainer"></div>
+            </div>
+
+            <!-- Chat Panel -->
+            <div id="chatPanel" style="display:none;">
+                <div class="chat-header-bar" id="chatHeaderTitle">💬 Select a friend to chat</div>
+                <div id="chatBoxContainer" class="chat-box">
+                    <div class="chat-empty-state">
+                        <div style="font-size:36px;margin-bottom:8px;">💬</div>
+                        <p>Go to Players tab, accept a friend request, then tap Chat.</p>
+                    </div>
+                </div>
+                <form id="chatForm" onsubmit="handleSendMessage(event)" class="chat-input-row" style="display:none;">
+                    <input type="text" id="chatMessageInput" required placeholder="Type a message..." class="chat-input">
+                    <button class="chat-send-btn" type="submit">🚀</button>
+                </form>
             </div>
         </section>
 
         <!-- USER PROFILE SETTINGS -->
         <section id="userProfile" class="page">
-            <div class="card max-w-lg mx-auto">
-                <div class="card-header">
-                    <span class="flex items-center gap-2">👤 Player Profile Settings</span>
+            <div class="page-hero">
+                <div class="page-hero-icon">👤</div>
+                <div>
+                    <div class="page-hero-title">My Profile</div>
+                    <div class="page-hero-sub">Manage your player identity</div>
                 </div>
-                <form onsubmit="handleUpdateProfile(event)">
-                    <div class="text-center mb-6">
-                        <div class="relative inline-block">
-                            <img id="profilePreviewImg" src="https://via.placeholder.com/100?text=Avatar" alt="Profile" class="w-20 h-20 rounded-full object-cover border-2 border-epl-mint shadow-lg shadow-epl-mint/20 mx-auto mb-2">
-                            <span class="absolute bottom-1 right-0 bg-epl-purple border border-epl-mint text-epl-mint rounded-full w-6 h-6 flex items-center justify-center text-xs">
-                                📷
-                            </span>
+            </div>
+
+            <div class="profile-layout">
+                <!-- Avatar Card -->
+                <div class="card profile-avatar-card">
+                    <div class="profile-avatar-wrap">
+                        <img id="profilePreviewImg" src="https://via.placeholder.com/100?text=⚽" alt="Profile" class="profile-big-avatar">
+                        <div class="profile-camera-btn">📷</div>
+                    </div>
+                    <div id="profileStatsRow"></div>
+                </div>
+
+                <!-- Settings Form Card -->
+                <div class="card mb-0">
+                    <div class="card-header">
+                        <span>⚙️ Profile Settings</span>
+                    </div>
+                    <form onsubmit="handleUpdateProfile(event)">
+                        <div class="form-group">
+                            <label for="profilePicUrl">🖼️ Avatar URL</label>
+                            <div style="display:flex;gap:8px;align-items:center;">
+                                <input type="text" id="profilePicUrl" placeholder="Paste image URL" style="flex:1;">
+                                <button type="button" onclick="previewProfilePic()" class="btn" style="background:rgba(4,245,255,0.15);border:1px solid rgba(4,245,255,0.3);color:var(--epl-cyan);font-size:10px;padding:8px 12px;white-space:nowrap;">👁 Preview</button>
+                            </div>
                         </div>
-                    </div>
-                    <div class="form-group">
-                        <label for="profilePicUrl">🖼️ Profile Picture URL</label>
-                        <input type="text" id="profilePicUrl" placeholder="Paste image URL here" class="text-xs p-2.5">
-                    </div>
-                    <div class="form-group">
-                        <label for="profileFullName">👤 Full Name</label>
-                        <input type="text" id="profileFullName" required class="text-xs p-2.5">
-                    </div>
-                    <div class="form-group">
-                        <label for="profileTeamName">👕 DLS Team Name</label>
-                        <input type="text" id="profileTeamName" required class="text-xs p-2.5">
-                    </div>
-                    <div class="form-group">
-                        <label for="profilePassword">🔑 New Password (optional)</label>
-                        <input type="password" id="profilePassword" placeholder="Leave blank to keep current password" class="text-xs p-2.5">
-                    </div>
-                    <button class="btn btn-primary w-full py-2.5 text-xs" type="submit">
-                        💾 Save Changes
-                    </button>
-                </form>
+                        <div class="form-group">
+                            <label for="profileFullName">👤 Full Name</label>
+                            <input type="text" id="profileFullName" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="profileTeamName">👕 DLS Team Name</label>
+                            <input type="text" id="profileTeamName" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="profilePassword">🔑 New Password</label>
+                            <input type="password" id="profilePassword" placeholder="Leave blank to keep current">
+                        </div>
+                        <button class="btn btn-primary" style="width:100%;padding:12px;" type="submit">
+                            💾 Save Profile Changes
+                        </button>
+                    </form>
+                </div>
             </div>
         </section>
 
