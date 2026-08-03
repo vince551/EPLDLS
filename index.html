@@ -13,13 +13,11 @@
     <meta name="apple-mobile-web-app-title" content="EPL DLS Hub">
     <link rel="apple-touch-icon" href="images/icon-192.png">
 
-    <!-- Fonts & Icons -->
+    <!-- Fonts & Tailwind CSS CDN -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     
-    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -48,8 +46,8 @@
     <!-- PWA Install Prompt Banner -->
     <div id="pwaInstallBanner" style="display:none;">
         <div class="flex items-center gap-3">
-            <div class="w-10 h-10 rounded-lg bg-epl-purple flex items-center justify-center border border-epl-mint">
-                <i class="fa-solid fa-trophy text-epl-mint text-lg"></i>
+            <div class="w-10 h-10 rounded-lg bg-epl-purple flex items-center justify-center border border-epl-mint shrink-0">
+                <svg class="w-5 h-5 text-epl-mint" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/></svg>
             </div>
             <div>
                 <h5 class="text-xs font-bold uppercase text-epl-mint tracking-wider">Install EPL DLS App</h5>
@@ -58,7 +56,7 @@
         </div>
         <div class="flex gap-2">
             <button id="pwaInstallBtn" class="btn btn-primary text-xs px-3 py-1.5 rounded-md">Install</button>
-            <button id="pwaCloseBtn" class="text-gray-400 hover:text-white px-2 text-sm"><i class="fa-solid fa-xmark"></i></button>
+            <button id="pwaCloseBtn" class="text-gray-400 hover:text-white px-2 text-sm">✕</button>
         </div>
     </div>
 
@@ -80,31 +78,55 @@
     <!-- Header / Top Bar -->
     <header class="sticky top-0 z-50">
         <div class="brand cursor-pointer" onclick="showPage(currentUser ? (currentUser.role === 'admin' ? 'adminDashboard' : 'userHome') : 'authPage')">
-            <i class="fa-solid fa-trophy text-epl-mint mr-2 text-xl"></i>
+            <svg class="w-6 h-6 inline-block text-epl-mint mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/></svg>
             <span class="brand-epl">EPL</span> DLS HUB
         </div>
 
         <!-- Desktop Navigation Bar -->
         <nav id="userNav" style="display:none;">
-            <button class="nav-btn active" onclick="showPage('userHome')"><i class="fa-solid fa-house"></i> Home</button>
-            <button class="nav-btn" onclick="showPage('userTournaments')"><i class="fa-solid fa-trophy"></i> Tournaments</button>
-            <button class="nav-btn" onclick="showPage('userFixtures')"><i class="fa-solid fa-calendar-days"></i> Fixtures</button>
-            <button class="nav-btn" onclick="showPage('userKits')"><i class="fa-solid fa-shirt"></i> Kits</button>
-            <button class="nav-btn" onclick="showPage('userFriends')"><i class="fa-solid fa-user-group"></i> Friends</button>
-            <button class="nav-btn" onclick="showPage('userProfile')"><i class="fa-solid fa-user-gear"></i> Profile</button>
+            <button class="nav-btn active" onclick="showPage('userHome')">
+                <svg class="w-4 h-4 inline-block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg> Home
+            </button>
+            <button class="nav-btn" onclick="showPage('userTournaments')">
+                <svg class="w-4 h-4 inline-block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/></svg> Tournaments
+            </button>
+            <button class="nav-btn" onclick="showPage('userFixtures')">
+                <svg class="w-4 h-4 inline-block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg> Fixtures
+            </button>
+            <button class="nav-btn" onclick="showPage('userKits')">
+                <svg class="w-4 h-4 inline-block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h10l2 3-3 2v9H8v-9L5 10l2-3z"/></svg> Kits
+            </button>
+            <button class="nav-btn" onclick="showPage('userFriends')">
+                <svg class="w-4 h-4 inline-block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg> Friends
+            </button>
+            <button class="nav-btn" onclick="showPage('userProfile')">
+                <svg class="w-4 h-4 inline-block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg> Profile
+            </button>
             <div class="notification-bell" onclick="openNotifications()" title="Notifications">
-                <i class="fa-solid fa-bell"></i>
+                <svg class="w-5 h-5 inline-block text-epl-cyan" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
                 <span class="badge" id="notifBadge">0</span>
             </div>
-            <button class="nav-btn nav-btn-logout" onclick="logout()"><i class="fa-solid fa-right-from-bracket"></i> Logout</button>
+            <button class="nav-btn nav-btn-logout" onclick="logout()">
+                <svg class="w-4 h-4 inline-block text-epl-pink" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg> Logout
+            </button>
         </nav>
 
         <nav id="adminNav" style="display:none;">
-            <button class="nav-btn active" onclick="showPage('adminDashboard')"><i class="fa-solid fa-chart-pie"></i> Dashboard</button>
-            <button class="nav-btn" onclick="showPage('adminTournaments')"><i class="fa-solid fa-trophy"></i> Tournaments</button>
-            <button class="nav-btn" onclick="showPage('adminFixtures')"><i class="fa-solid fa-calendar-plus"></i> Fixtures</button>
-            <button class="nav-btn" onclick="showPage('adminUsers')"><i class="fa-solid fa-users"></i> Users</button>
-            <button class="nav-btn nav-btn-logout" onclick="logout()"><i class="fa-solid fa-right-from-bracket"></i> Logout</button>
+            <button class="nav-btn active" onclick="showPage('adminDashboard')">
+                <svg class="w-4 h-4 inline-block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z"/></svg> Dashboard
+            </button>
+            <button class="nav-btn" onclick="showPage('adminTournaments')">
+                <svg class="w-4 h-4 inline-block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/></svg> Tournaments
+            </button>
+            <button class="nav-btn" onclick="showPage('adminFixtures')">
+                <svg class="w-4 h-4 inline-block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg> Fixtures
+            </button>
+            <button class="nav-btn" onclick="showPage('adminUsers')">
+                <svg class="w-4 h-4 inline-block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg> Users
+            </button>
+            <button class="nav-btn nav-btn-logout" onclick="logout()">
+                <svg class="w-4 h-4 inline-block text-epl-pink" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg> Logout
+            </button>
         </nav>
     </header>
 
@@ -121,36 +143,36 @@
             <div class="card max-w-md mx-auto my-8">
                 <div class="card-header">
                     <span id="authTitle" class="flex items-center gap-2">
-                        <i class="fa-solid fa-shield-halved text-epl-mint"></i> Player Login
+                        <svg class="w-5 h-5 text-epl-mint inline-block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg> Player Login
                     </span>
                     <span class="text-xs text-epl-mint font-semibold uppercase tracking-wider">DLS Season 26</span>
                 </div>
                 
                 <div class="flex gap-3 mb-6">
                     <button class="btn btn-primary flex-1" id="loginTabBtn" onclick="switchAuthTab('login')">
-                        <i class="fa-solid fa-right-to-bracket"></i> Login
+                        🔑 Login
                     </button>
                     <button class="btn flex-1 bg-white/10 text-white" id="registerTabBtn" onclick="switchAuthTab('register')">
-                        <i class="fa-solid fa-user-plus"></i> Register
+                        👤 Register
                     </button>
                 </div>
 
                 <!-- Login Form -->
                 <form id="loginForm" onsubmit="handleLogin(event)">
                     <div class="form-group">
-                        <label for="loginName"><i class="fa-solid fa-user mr-1"></i> Username / Name</label>
+                        <label for="loginName">👤 Username / Name</label>
                         <input type="text" id="loginName" required placeholder="Enter username (e.g. Admin or Alex Mercer)">
                     </div>
                     <div class="form-group">
-                        <label for="loginPass"><i class="fa-solid fa-lock mr-1"></i> Password</label>
+                        <label for="loginPass">🔒 Password</label>
                         <input type="password" id="loginPass" required placeholder="Enter password">
                     </div>
                     <button class="btn btn-primary w-full mb-4 py-3" type="submit">
-                        <i class="fa-solid fa-arrow-right-to-bracket"></i> Login to Hub
+                        ➔ Login to Hub
                     </button>
                     <div class="text-center">
                         <a href="#" onclick="openModal('forgotPassModal')" class="text-epl-cyan hover:underline text-xs flex items-center justify-center gap-1">
-                            <i class="fa-solid fa-key"></i> Forgot Password?
+                            🔑 Forgot Password?
                         </a>
                     </div>
                 </form>
@@ -158,19 +180,19 @@
                 <!-- Registration Form -->
                 <form id="registerForm" onsubmit="handleRegister(event)" style="display:none;">
                     <div class="form-group">
-                        <label for="regName"><i class="fa-solid fa-id-card mr-1"></i> Full Name</label>
+                        <label for="regName">🆔 Full Name</label>
                         <input type="text" id="regName" required placeholder="Enter your full name">
                     </div>
                     <div class="form-group">
-                        <label for="regTeam"><i class="fa-solid fa-shirt mr-1"></i> DLS Team Name</label>
+                        <label for="regTeam">👕 DLS Team Name</label>
                         <input type="text" id="regTeam" required placeholder="Enter your Dream League team name">
                     </div>
                     <div class="form-group">
-                        <label for="regPass"><i class="fa-solid fa-lock mr-1"></i> Password</label>
+                        <label for="regPass">🔒 Password</label>
                         <input type="password" id="regPass" required placeholder="Create a strong password">
                     </div>
                     <button class="btn btn-primary w-full py-3" type="submit">
-                        <i class="fa-solid fa-user-check"></i> Create Account
+                        ✅ Create Account
                     </button>
                 </form>
             </div>
@@ -180,13 +202,13 @@
         <section id="userHome" class="page">
             <div class="card">
                 <div class="card-header">
-                    <span class="flex items-center gap-2"><i class="fa-solid fa-rss text-epl-pink"></i> Active Tournaments Overview</span>
+                    <span class="flex items-center gap-2">📡 Active Tournaments Overview</span>
                     <span class="text-xs text-epl-mint font-semibold uppercase">Live Hub Feed</span>
                 </div>
                 <div class="form-group mb-6">
                     <div class="relative">
                         <input type="text" id="userTeamSearch" placeholder="Search for your team name to locate fixtures..." oninput="filterUserFixtures()" class="pl-10">
-                        <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3.5 text-gray-400 text-sm"></i>
+                        <svg class="w-4 h-4 text-gray-400 absolute left-3.5 top-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
                     </div>
                 </div>
                 <div id="userTournamentsFeed"></div>
@@ -197,7 +219,7 @@
         <section id="userTournaments" class="page">
             <div class="card">
                 <div class="card-header">
-                    <span class="flex items-center gap-2"><i class="fa-solid fa-trophy text-epl-mint"></i> Available Tournaments</span>
+                    <span class="flex items-center gap-2">🏆 Available Tournaments</span>
                     <span class="text-xs text-epl-cyan font-semibold">Select tournament to review fixtures & rules</span>
                 </div>
                 <div id="tournamentsListContainer" class="dashboard-grid"></div>
@@ -208,13 +230,13 @@
         <section id="userFixtures" class="page">
             <div class="card">
                 <div class="card-header">
-                    <span class="flex items-center gap-2"><i class="fa-solid fa-calendar-days text-epl-cyan"></i> Match Fixtures & Results</span>
+                    <span class="flex items-center gap-2">📅 Match Fixtures & Results</span>
                     <span class="text-xs text-epl-mint font-semibold">Grouped by Date</span>
                 </div>
                 <div class="flex gap-2 mb-6 overflow-x-auto pb-2">
-                    <button class="btn btn-primary text-xs py-2 px-4" onclick="filterFixturesTab('all')"><i class="fa-solid fa-list-ul"></i> All Matches</button>
-                    <button class="btn bg-white/10 text-white text-xs py-2 px-4" onclick="filterFixturesTab('upcoming')"><i class="fa-solid fa-clock"></i> Upcoming</button>
-                    <button class="btn bg-white/10 text-white text-xs py-2 px-4" onclick="filterFixturesTab('played')"><i class="fa-solid fa-circle-check"></i> Completed</button>
+                    <button class="btn btn-primary text-xs py-2 px-4" onclick="filterFixturesTab('all')">📋 All Matches</button>
+                    <button class="btn bg-white/10 text-white text-xs py-2 px-4" onclick="filterFixturesTab('upcoming')">⏰ Upcoming</button>
+                    <button class="btn bg-white/10 text-white text-xs py-2 px-4" onclick="filterFixturesTab('played')">✅ Completed</button>
                 </div>
                 <div id="userFixturesGroupedList"></div>
             </div>
@@ -224,7 +246,7 @@
         <section id="userKits" class="page">
             <div class="card video-guide-card mb-6">
                 <div class="card-header">
-                    <span class="flex items-center gap-2"><i class="fa-solid fa-circle-play text-epl-pink"></i> How to Import Kits into DLS 26</span>
+                    <span class="flex items-center gap-2">▶️ How to Import Kits into DLS 26</span>
                     <span class="text-xs text-epl-cyan font-semibold">Video Walkthrough</span>
                 </div>
                 <p class="text-xs text-gray-300 mb-4">
@@ -244,7 +266,7 @@
 
             <div class="card">
                 <div class="card-header">
-                    <span class="flex items-center gap-2"><i class="fa-solid fa-shirt text-epl-mint"></i> DLS 26 National & Club Kits Directory</span>
+                    <span class="flex items-center gap-2">👕 DLS 26 National & Club Kits Directory</span>
                     <span class="text-xs text-epl-mint font-semibold">Select team for PNG URLs</span>
                 </div>
                 <p class="text-xs text-gray-300 mb-6">
@@ -259,7 +281,7 @@
             <div class="dashboard-grid">
                 <div class="card mb-0">
                     <div class="card-header">
-                        <span class="flex items-center gap-2"><i class="fa-solid fa-users text-epl-cyan"></i> Friends List</span>
+                        <span class="flex items-center gap-2">👥 Friends List</span>
                     </div>
                     <div class="form-group mb-4">
                         <input type="text" id="friendSearchInput" placeholder="Search registered user..." oninput="renderFriendsPage()">
@@ -268,14 +290,14 @@
                 </div>
                 <div class="card mb-0">
                     <div class="card-header">
-                        <span id="chatHeaderTitle" class="flex items-center gap-2"><i class="fa-solid fa-comments text-epl-pink"></i> Chat Room</span>
+                        <span id="chatHeaderTitle" class="flex items-center gap-2">💬 Chat Room</span>
                     </div>
                     <div id="chatBoxContainer" style="height:280px;" class="bg-black/40 border border-epl-border rounded-lg p-3 overflow-y-auto mb-3 text-xs">
                         <p class="text-gray-400 text-center py-8">Select an accepted friend from your list to start chatting.</p>
                     </div>
                     <form id="chatForm" onsubmit="handleSendMessage(event)" class="flex gap-2" style="display:none;">
                         <input type="text" id="chatMessageInput" required placeholder="Type message..." class="flex-1">
-                        <button class="btn btn-primary px-4" type="submit"><i class="fa-solid fa-paper-plane"></i> Send</button>
+                        <button class="btn btn-primary px-4" type="submit">🚀 Send</button>
                     </form>
                 </div>
             </div>
@@ -285,35 +307,35 @@
         <section id="userProfile" class="page">
             <div class="card max-w-lg mx-auto">
                 <div class="card-header">
-                    <span class="flex items-center gap-2"><i class="fa-solid fa-user-gear text-epl-mint"></i> Player Profile Settings</span>
+                    <span class="flex items-center gap-2">👤 Player Profile Settings</span>
                 </div>
                 <form onsubmit="handleUpdateProfile(event)">
                     <div class="text-center mb-6">
                         <div class="relative inline-block">
                             <img id="profilePreviewImg" src="https://via.placeholder.com/100?text=Avatar" alt="Profile" class="w-24 h-24 rounded-full object-cover border-2 border-epl-mint shadow-lg shadow-epl-mint/20 mx-auto mb-2">
                             <span class="absolute bottom-2 right-0 bg-epl-purple border border-epl-mint text-epl-mint rounded-full w-7 h-7 flex items-center justify-center text-xs">
-                                <i class="fa-solid fa-camera"></i>
+                                📷
                             </span>
                         </div>
                     </div>
                     <div class="form-group">
-                        <label for="profilePicUrl"><i class="fa-solid fa-image mr-1"></i> Profile Picture URL</label>
+                        <label for="profilePicUrl">🖼️ Profile Picture URL</label>
                         <input type="text" id="profilePicUrl" placeholder="Paste image URL here">
                     </div>
                     <div class="form-group">
-                        <label for="profileFullName"><i class="fa-solid fa-user mr-1"></i> Full Name</label>
+                        <label for="profileFullName">👤 Full Name</label>
                         <input type="text" id="profileFullName" required>
                     </div>
                     <div class="form-group">
-                        <label for="profileTeamName"><i class="fa-solid fa-shirt mr-1"></i> DLS Team Name</label>
+                        <label for="profileTeamName">👕 DLS Team Name</label>
                         <input type="text" id="profileTeamName" required>
                     </div>
                     <div class="form-group">
-                        <label for="profilePassword"><i class="fa-solid fa-key mr-1"></i> New Password (optional)</label>
+                        <label for="profilePassword">🔑 New Password (optional)</label>
                         <input type="password" id="profilePassword" placeholder="Leave blank to keep current password">
                     </div>
                     <button class="btn btn-primary w-full py-3" type="submit">
-                        <i class="fa-solid fa-floppy-disk"></i> Save Changes
+                        💾 Save Changes
                     </button>
                 </form>
             </div>
@@ -321,36 +343,36 @@
 
         <!-- ADMIN DASHBOARD -->
         <section id="adminDashboard" class="page">
-            <div class="dashboard-grid">
+            <!-- Compact Mobile Metric Summary Bar -->
+            <div class="grid grid-cols-3 gap-2 sm:gap-4 mb-4">
                 <div class="stat-box">
-                    <h4><i class="fa-solid fa-users text-epl-cyan mr-1"></i> Registered Players</h4>
-                    <span id="statTotalUsers">0</span>
+                    <h4>👥 Players</h4>
+                    <span id="statTotalUsers" class="text-xl sm:text-3xl font-black">0</span>
                 </div>
                 <div class="stat-box">
-                    <h4><i class="fa-solid fa-trophy text-epl-mint mr-1"></i> Active Tournaments</h4>
-                    <span id="statTotalTournaments">0</span>
+                    <h4>🏆 Tournaments</h4>
+                    <span id="statTotalTournaments" class="text-xl sm:text-3xl font-black">0</span>
                 </div>
                 <div class="stat-box">
-                    <h4><i class="fa-solid fa-calendar-check text-epl-pink mr-1"></i> Scheduled Fixtures</h4>
-                    <span id="statTotalFixtures">0</span>
+                    <h4>📅 Fixtures</h4>
+                    <span id="statTotalFixtures" class="text-xl sm:text-3xl font-black">0</span>
                 </div>
             </div>
 
-            <div class="card">
+            <div class="card mb-4">
                 <div class="card-header">
-                    <span>Registered Members Roster</span>
-                    <span class="text-xs text-epl-mint font-semibold">System Database</span>
+                    <span class="flex items-center gap-2">👥 Members Roster</span>
+                    <span class="text-[10px] text-epl-mint font-semibold uppercase">System Database</span>
                 </div>
                 <div class="overflow-x-auto">
-                    <table>
+                    <table class="w-full text-xs">
                         <thead>
                             <tr>
-                                <th>No.</th>
-                                <th>Name</th>
-                                <th>Team Name</th>
-                                <th>Password</th>
-                                <th>Status</th>
-                                <th>Action</th>
+                                <th class="py-2 px-2 text-center">#</th>
+                                <th class="py-2 px-2">Player Name</th>
+                                <th class="py-2 px-2">DLS Team</th>
+                                <th class="py-2 px-2 text-center">Status</th>
+                                <th class="py-2 px-2 text-center">Action</th>
                             </tr>
                         </thead>
                         <tbody id="adminUsersTableBody"></tbody>
@@ -360,15 +382,15 @@
 
             <div class="card">
                 <div class="card-header">
-                    <span>Broadcast System Notification</span>
+                    <span class="flex items-center gap-2">📢 System Broadcast</span>
                 </div>
                 <form onsubmit="handleSendAdminNotification(event)">
-                    <div class="form-group">
-                        <label for="adminNotifText"><i class="fa-solid fa-bullhorn mr-1"></i> Notification Message</label>
-                        <input type="text" id="adminNotifText" required placeholder="Type notification broadcast for all users...">
+                    <div class="form-group mb-3">
+                        <label for="adminNotifText">💬 Broadcast Message</label>
+                        <input type="text" id="adminNotifText" required placeholder="Type notification broadcast for all users..." class="text-xs p-2.5">
                     </div>
-                    <button class="btn btn-primary" type="submit">
-                        <i class="fa-solid fa-paper-plane"></i> Broadcast Notification
+                    <button class="btn btn-primary w-full py-2.5 text-xs" type="submit">
+                        🚀 Broadcast Notification
                     </button>
                 </form>
             </div>
@@ -376,9 +398,11 @@
 
         <!-- ADMIN TOURNAMENTS -->
         <section id="adminTournaments" class="page">
-            <div class="dashboard-grid">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div class="card mb-0">
-                    <div class="card-header"><span>Create New Tournament</span></div>
+                    <div class="card-header">
+                        <span class="flex items-center gap-2">➕ Create Tournament</span>
+                    </div>
                     <form onsubmit="handleCreateTournament(event)">
                         <div class="form-group">
                             <label for="adminTournName">Tournament Name</label>
@@ -386,18 +410,20 @@
                         </div>
                         <div class="form-group">
                             <label for="adminTournRules">Tournament Rules</label>
-                            <textarea id="adminTournRules" rows="4" placeholder="Enter tournament rules..." class="w-full p-2.5 bg-black/60 border border-epl-border color-white rounded-lg"></textarea>
+                            <textarea id="adminTournRules" rows="3" placeholder="Enter tournament rules..." class="w-full p-2 bg-black/60 border border-epl-border text-white text-xs rounded-lg"></textarea>
                         </div>
                         <div class="form-group">
-                            <label for="adminTournFile">Tournament Background Image (From Device)</label>
-                            <input type="file" id="adminTournFile" accept="image/*" onchange="previewTournBgFile(event)">
+                            <label for="adminTournFile">Background Image</label>
+                            <input type="file" id="adminTournFile" accept="image/*" onchange="previewTournBgFile(event)" class="text-xs">
                             <input type="hidden" id="adminTournBgBase64">
                         </div>
-                        <button class="btn btn-primary" type="submit"><i class="fa-solid fa-plus"></i> Create Tournament</button>
+                        <button class="btn btn-primary w-full py-2.5" type="submit">➕ Create Tournament</button>
                     </form>
                 </div>
                 <div class="card mb-0">
-                    <div class="card-header"><span>Active Tournaments & Rules</span></div>
+                    <div class="card-header">
+                        <span class="flex items-center gap-2">🏆 Active Tournaments</span>
+                    </div>
                     <div id="adminTournamentsList"></div>
                 </div>
             </div>
@@ -406,34 +432,36 @@
         <!-- ADMIN FIXTURES -->
         <section id="adminFixtures" class="page">
             <div class="card">
-                <div class="card-header"><span>Schedule Fixtures & Input Results</span></div>
-                <form onsubmit="handleCreateFixture(event)" class="mb-6">
-                    <div class="dashboard-grid mb-3">
+                <div class="card-header">
+                    <span class="flex items-center gap-2">📅 Schedule & Score Input</span>
+                </div>
+                <form onsubmit="handleCreateFixture(event)" class="mb-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-3">
                         <div class="form-group mb-0">
-                            <label for="fixTournSelect">Select Tournament</label>
-                            <select id="fixTournSelect" required></select>
+                            <label for="fixTournSelect">Tournament</label>
+                            <select id="fixTournSelect" required class="text-xs p-2"></select>
                         </div>
                         <div class="form-group mb-0">
                             <label for="fixHomeTeam">Home Team</label>
-                            <select id="fixHomeTeam" required></select>
+                            <select id="fixHomeTeam" required class="text-xs p-2"></select>
                         </div>
                         <div class="form-group mb-0">
                             <label for="fixAwayTeam">Away Team</label>
-                            <select id="fixAwayTeam" required></select>
+                            <select id="fixAwayTeam" required class="text-xs p-2"></select>
                         </div>
                     </div>
-                    <div class="dashboard-grid mb-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-3">
                         <div class="form-group mb-0">
-                            <label for="fixDate">Match Date (Auto Weekday)</label>
-                            <input type="date" id="fixDate" required onchange="calcWeekday(event)">
-                            <span id="displayWeekday" class="text-xs text-epl-mint mt-1 block">Select date...</span>
+                            <label for="fixDate">Date</label>
+                            <input type="date" id="fixDate" required onchange="calcWeekday(event)" class="text-xs p-2">
+                            <span id="displayWeekday" class="text-[10px] text-epl-mint mt-0.5 block">Select date...</span>
                         </div>
                         <div class="form-group mb-0">
-                            <label for="fixTime">Match Time</label>
-                            <input type="time" id="fixTime" required>
+                            <label for="fixTime">Time</label>
+                            <input type="time" id="fixTime" required class="text-xs p-2">
                         </div>
                     </div>
-                    <button class="btn btn-primary" type="submit"><i class="fa-solid fa-calendar-plus"></i> Schedule Fixture</button>
+                    <button class="btn btn-primary w-full py-2.5" type="submit">📅 Schedule Fixture</button>
                 </form>
                 <div id="adminFixturesManagementList"></div>
             </div>
@@ -442,15 +470,17 @@
         <!-- ADMIN USERS MODERATION -->
         <section id="adminUsers" class="page">
             <div class="card">
-                <div class="card-header"><span>User & Team Moderation</span></div>
+                <div class="card-header">
+                    <span class="flex items-center gap-2">🛡️ User & Team Moderation</span>
+                </div>
                 <div class="overflow-x-auto">
-                    <table>
+                    <table class="w-full text-xs">
                         <thead>
                             <tr>
-                                <th>Name</th>
-                                <th>Team Name</th>
-                                <th>Role</th>
-                                <th>Actions</th>
+                                <th class="py-2 px-3">Player Name</th>
+                                <th class="py-2 px-3">Team Name</th>
+                                <th class="py-2 px-3">Role</th>
+                                <th class="py-2 px-3 text-center">Action</th>
                             </tr>
                         </thead>
                         <tbody id="adminModerationTableBody"></tbody>
@@ -467,8 +497,8 @@
     <div id="forgotPassModal" class="modal">
         <div class="modal-content card max-w-md my-auto">
             <div class="card-header">
-                <span class="flex items-center gap-2"><i class="fa-solid fa-key text-epl-mint"></i> Reset Password</span>
-                <button class="btn-close text-gray-400 hover:text-white" onclick="closeModal('forgotPassModal')"><i class="fa-solid fa-xmark text-lg"></i></button>
+                <span class="flex items-center gap-2">🔑 Reset Password</span>
+                <button class="btn-close text-gray-400 hover:text-white" onclick="closeModal('forgotPassModal')">✕</button>
             </div>
             <form onsubmit="handleForgotPassword(event)">
                 <div class="form-group">
@@ -489,7 +519,7 @@
         <div class="modal-content card max-w-2xl my-auto">
             <div class="card-header">
                 <span id="modalTournTitle">Tournament Details</span>
-                <button class="btn-close text-gray-400 hover:text-white" onclick="closeModal('openTournModal')"><i class="fa-solid fa-xmark text-lg"></i></button>
+                <button class="btn-close text-gray-400 hover:text-white" onclick="closeModal('openTournModal')">✕</button>
             </div>
             
             <div class="mb-5">
@@ -499,7 +529,7 @@
 
             <div class="mb-5">
                 <h4 class="text-epl-mint font-bold text-sm mb-2 flex items-center gap-2">
-                    <i class="fa-solid fa-table-list"></i> Standings Table
+                    📋 Standings Table
                 </h4>
                 <div class="overflow-x-auto">
                     <table>
@@ -524,7 +554,7 @@
 
             <div>
                 <h4 class="text-epl-mint font-bold text-sm mb-2 flex items-center gap-2">
-                    <i class="fa-solid fa-calendar-days"></i> Tournament Fixtures
+                    📅 Tournament Fixtures
                 </h4>
                 <div id="modalTournFixturesList"></div>
             </div>
@@ -536,9 +566,9 @@
         <div class="modal-content card max-w-3xl my-auto max-h-[90vh] overflow-y-auto">
             <div class="card-header">
                 <span id="modalTeamName" class="flex items-center gap-2">
-                    <i class="fa-solid fa-shirt text-epl-mint"></i> Team Kits
+                    👕 Team Kits
                 </span>
-                <button class="btn-close text-gray-400 hover:text-white" onclick="closeModal('teamKitsModal')"><i class="fa-solid fa-xmark text-xl"></i></button>
+                <button class="btn-close text-gray-400 hover:text-white" onclick="closeModal('teamKitsModal')">✕</button>
             </div>
             <div class="flex items-center gap-4 bg-black/60 p-4 rounded-xl mb-5 border border-epl-border">
                 <img id="modalTeamLogoImg" src="" alt="Logo" class="w-16 h-16 object-contain">
@@ -547,13 +577,13 @@
                     <div class="kit-url-box flex gap-2">
                         <input type="text" readonly id="modalLogoUrlInput" class="kit-url-input flex-1 p-2 bg-black border border-epl-border text-white rounded-md text-xs font-mono">
                         <button class="btn btn-primary text-xs px-3" onclick="copyInputUrl('modalLogoUrlInput')">
-                            <i class="fa-solid fa-copy"></i> Copy Logo
+                            📋 Copy Logo
                         </button>
                     </div>
                 </div>
             </div>
             <h4 class="text-epl-mint font-bold text-sm mb-3 flex items-center gap-2">
-                <i class="fa-solid fa-layer-group"></i> Available Kits
+                📋 Available Kits
             </h4>
             <div class="modal-kits-grid" id="modalKitsGrid"></div>
         </div>
@@ -563,8 +593,8 @@
     <div id="notificationsModal" class="modal">
         <div class="modal-content card max-w-md my-auto">
             <div class="card-header">
-                <span class="flex items-center gap-2"><i class="fa-solid fa-bell text-epl-cyan"></i> Notifications</span>
-                <button class="btn-close text-gray-400 hover:text-white" onclick="closeModal('notificationsModal')"><i class="fa-solid fa-xmark text-lg"></i></button>
+                <span class="flex items-center gap-2">🔔 Notifications</span>
+                <button class="btn-close text-gray-400 hover:text-white" onclick="closeModal('notificationsModal')">✕</button>
             </div>
             <div id="notificationsList" class="flex flex-col gap-2 max-h-80 overflow-y-auto">
                 <p class="text-gray-400 text-xs text-center py-4">No new notifications.</p>

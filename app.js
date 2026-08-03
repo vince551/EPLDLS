@@ -92,8 +92,8 @@ function showToast(message, type = 'info') {
 
     const toast = document.createElement('div');
     toast.className = `toast-item ${type === 'error' ? 'error' : ''}`;
-    const icon = type === 'error' ? 'fa-triangle-exclamation text-epl-pink' : 'fa-circle-check text-epl-mint';
-    toast.innerHTML = `<i class="fa-solid ${icon}"></i> <span>${message}</span>`;
+    const icon = type === 'error' ? '⚠️' : '✅';
+    toast.innerHTML = `<span class="text-base">${icon}</span> <span>${message}</span>`;
     
     container.appendChild(toast);
 
@@ -202,7 +202,7 @@ function renderAll() {
     }
 }
 
-// MOBILE BOTTOM NAVIGATION
+// MOBILE BOTTOM NAVIGATION (GUARANTEED UNIVERSAL ICONS)
 function renderMobileNavigation() {
     const mobileNav = document.getElementById('mobileNav');
     if (!mobileNav) return;
@@ -217,46 +217,46 @@ function renderMobileNavigation() {
     if (currentUser.role === 'admin') {
         mobileNav.innerHTML = `
             <button class="mobile-nav-item active" onclick="showPage('adminDashboard')">
-                <i class="fa-solid fa-chart-pie"></i>
+                <span class="text-base">📊</span>
                 <span>Dashboard</span>
             </button>
             <button class="mobile-nav-item" onclick="showPage('adminTournaments')">
-                <i class="fa-solid fa-trophy"></i>
+                <span class="text-base">🏆</span>
                 <span>Tournaments</span>
             </button>
             <button class="mobile-nav-item" onclick="showPage('adminFixtures')">
-                <i class="fa-solid fa-calendar-plus"></i>
+                <span class="text-base">📅</span>
                 <span>Fixtures</span>
             </button>
             <button class="mobile-nav-item" onclick="showPage('adminUsers')">
-                <i class="fa-solid fa-users"></i>
+                <span class="text-base">👥</span>
                 <span>Users</span>
             </button>
             <button class="mobile-nav-item" onclick="logout()">
-                <i class="fa-solid fa-right-from-bracket text-epl-pink"></i>
+                <span class="text-base text-epl-pink">🚪</span>
                 <span class="text-epl-pink">Logout</span>
             </button>
         `;
     } else {
         mobileNav.innerHTML = `
             <button class="mobile-nav-item active" onclick="showPage('userHome')">
-                <i class="fa-solid fa-house"></i>
+                <span class="text-base">🏠</span>
                 <span>Home</span>
             </button>
             <button class="mobile-nav-item" onclick="showPage('userTournaments')">
-                <i class="fa-solid fa-trophy"></i>
+                <span class="text-base">🏆</span>
                 <span>Tournaments</span>
             </button>
             <button class="mobile-nav-item" onclick="showPage('userFixtures')">
-                <i class="fa-solid fa-calendar-days"></i>
+                <span class="text-base">📅</span>
                 <span>Fixtures</span>
             </button>
             <button class="mobile-nav-item" onclick="showPage('userKits')">
-                <i class="fa-solid fa-shirt"></i>
+                <span class="text-base">👕</span>
                 <span>Kits</span>
             </button>
             <button class="mobile-nav-item" onclick="showPage('userProfile')">
-                <i class="fa-solid fa-user-gear"></i>
+                <span class="text-base">👤</span>
                 <span>Profile</span>
             </button>
         `;
@@ -429,12 +429,12 @@ function renderUserHome() {
         return `
             <div class="card tournament-card mb-4" style="${t.bgImage ? `background: linear-gradient(rgba(15,5,29,0.85), rgba(15,5,29,0.94)), url('${t.bgImage}'); background-size: cover; background-position: center;` : ''}">
                 <div class="card-header">
-                    <span class="flex items-center gap-2"><i class="fa-solid fa-trophy text-epl-mint"></i> ${t.name}</span>
+                    <span class="flex items-center gap-2">🏆 ${t.name}</span>
                 </div>
                 <p class="text-xs text-gray-300 mb-3">${t.rules}</p>
                 <div class="mb-3">
                     <h5 class="text-epl-mint text-xs font-bold uppercase mb-2 flex items-center gap-1">
-                        <i class="fa-solid fa-calendar-days"></i> Fixtures
+                        📅 Fixtures
                     </h5>
                     ${filteredFixtures.length === 0 ? '<p class="text-xs text-gray-400">No fixtures found matching search.</p>' :
                         filteredFixtures.map(f => {
@@ -442,7 +442,7 @@ function renderUserHome() {
                             return `
                                 <div class="bg-black/50 p-2.5 rounded-lg mb-2 flex justify-between items-center ${isMyTeam ? 'border border-epl-mint' : ''} ${f.played ? 'opacity-60' : ''}">
                                     <div>
-                                        <span class="text-[10px] text-epl-cyan font-semibold block"><i class="fa-solid fa-clock mr-1"></i> ${f.weekday}, ${f.date} (${f.time})</span>
+                                        <span class="text-[10px] text-epl-cyan font-semibold block">⏰ ${f.weekday}, ${f.date} (${f.time})</span>
                                         <div class="font-bold text-xs ${isMyTeam ? 'text-epl-mint' : 'text-white'}">${f.home} vs ${f.away}</div>
                                     </div>
                                     <div>${f.played ? `<strong class="text-epl-mint text-xs px-2 py-1 bg-black/60 rounded">${f.homeScore} - ${f.awayScore}</strong>` : '<span class="text-[10px] bg-epl-purple text-epl-mint px-2 py-0.5 rounded font-bold uppercase">Upcoming</span>'}</div>
@@ -469,10 +469,10 @@ function renderTournamentsList() {
     container.innerHTML = tournaments.map(t => `
         <div class="card mb-0 cursor-pointer hover:scale-[1.02] transition-transform" onclick="openTournamentDetails(${t.id})">
             <div class="card-header">
-                <span class="flex items-center gap-2"><i class="fa-solid fa-trophy text-epl-mint"></i> ${t.name}</span>
+                <span class="flex items-center gap-2">🏆 ${t.name}</span>
             </div>
             <p class="text-xs text-gray-300 mb-3 whitespace-pre-line">${t.rules.substring(0, 90)}...</p>
-            <button class="btn btn-primary w-full"><i class="fa-solid fa-arrow-right-long"></i> Open Tournament</button>
+            <button class="btn btn-primary w-full">➔ Open Tournament</button>
         </div>
     `).join('');
 }
@@ -593,12 +593,12 @@ function renderUserFixturesGrouped() {
     container.innerHTML = Object.keys(grouped).map(dateKey => `
         <div class="mb-4">
             <h4 class="text-epl-cyan text-xs font-bold uppercase tracking-wider mb-2 border-b border-epl-border pb-1">
-                <i class="fa-solid fa-calendar-day mr-1"></i> ${grouped[dateKey][0]?.weekday || 'Scheduled Date'}: ${dateKey}
+                📅 ${grouped[dateKey][0]?.weekday || 'Scheduled Date'}: ${dateKey}
             </h4>
             ${grouped[dateKey].map(f => `
                 <div class="bg-black/50 p-3 rounded-lg mb-2 flex justify-between items-center border border-white/5">
                     <div>
-                        <div class="text-[10px] text-gray-400 mb-0.5"><i class="fa-solid fa-clock mr-1"></i> ${f.time}</div>
+                        <div class="text-[10px] text-gray-400 mb-0.5">⏰ ${f.time}</div>
                         <div class="font-bold text-xs text-white">${f.home} vs ${f.away}</div>
                     </div>
                     <div>
@@ -686,7 +686,7 @@ function renderTeamKitsGrid() {
 
     grid.innerHTML = DLS_TEAMS_KITS.map((team, idx) => `
         <div class="team-kit-card flex flex-col items-center justify-center p-4 bg-black/40 border border-epl-border rounded-xl cursor-pointer hover:border-epl-mint transition-all" onclick="openTeamKitsModal(${idx})">
-            <img src="${team.logo}" alt="${team.name}" class="w-16 h-16 object-contain mb-2">
+            <img src="${team.logo}" alt="${team.name}" class="w-14 h-14 object-contain mb-2">
             <h5 class="text-xs font-bold text-white text-center">${team.name}</h5>
             <span class="text-[10px] text-epl-cyan mt-1 font-semibold">${team.category}</span>
         </div>
@@ -705,24 +705,24 @@ function openTeamKitsModal(idx) {
     modalKitsGrid.innerHTML = `
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div class="bg-black/50 p-3 rounded-lg border border-epl-border">
-                <h5 class="text-xs font-bold text-epl-mint mb-2 flex items-center gap-1"><i class="fa-solid fa-shirt"></i> Home Kit</h5>
+                <h5 class="text-xs font-bold text-epl-mint mb-2 flex items-center gap-1">👕 Home Kit</h5>
                 <input type="text" readonly id="kit_home" value="${team.kits.home}" class="w-full p-2 bg-black border border-epl-border text-white text-xs rounded mb-2 font-mono">
-                <button class="btn btn-primary text-xs w-full py-1.5" onclick="copyInputUrl('kit_home')"><i class="fa-solid fa-copy"></i> Copy Home Kit URL</button>
+                <button class="btn btn-primary text-xs w-full py-1.5" onclick="copyInputUrl('kit_home')">📋 Copy Home Kit URL</button>
             </div>
             <div class="bg-black/50 p-3 rounded-lg border border-epl-border">
-                <h5 class="text-xs font-bold text-epl-cyan mb-2 flex items-center gap-1"><i class="fa-solid fa-shirt"></i> Away Kit</h5>
+                <h5 class="text-xs font-bold text-epl-cyan mb-2 flex items-center gap-1">👕 Away Kit</h5>
                 <input type="text" readonly id="kit_away" value="${team.kits.away}" class="w-full p-2 bg-black border border-epl-border text-white text-xs rounded mb-2 font-mono">
-                <button class="btn btn-primary text-xs w-full py-1.5" onclick="copyInputUrl('kit_away')"><i class="fa-solid fa-copy"></i> Copy Away Kit URL</button>
+                <button class="btn btn-primary text-xs w-full py-1.5" onclick="copyInputUrl('kit_away')">📋 Copy Away Kit URL</button>
             </div>
             <div class="bg-black/50 p-3 rounded-lg border border-epl-border">
-                <h5 class="text-xs font-bold text-epl-pink mb-2 flex items-center gap-1"><i class="fa-solid fa-shirt"></i> Third Kit</h5>
+                <h5 class="text-xs font-bold text-epl-pink mb-2 flex items-center gap-1">👕 Third Kit</h5>
                 <input type="text" readonly id="kit_third" value="${team.kits.third}" class="w-full p-2 bg-black border border-epl-border text-white text-xs rounded mb-2 font-mono">
-                <button class="btn btn-primary text-xs w-full py-1.5" onclick="copyInputUrl('kit_third')"><i class="fa-solid fa-copy"></i> Copy Third Kit URL</button>
+                <button class="btn btn-primary text-xs w-full py-1.5" onclick="copyInputUrl('kit_third')">📋 Copy Third Kit URL</button>
             </div>
             <div class="bg-black/50 p-3 rounded-lg border border-epl-border">
-                <h5 class="text-xs font-bold text-yellow-400 mb-2 flex items-center gap-1"><i class="fa-solid fa-shirt"></i> Goalkeeper Kit</h5>
+                <h5 class="text-xs font-bold text-yellow-400 mb-2 flex items-center gap-1">👕 Goalkeeper Kit</h5>
                 <input type="text" readonly id="kit_gk" value="${team.kits.gk}" class="w-full p-2 bg-black border border-epl-border text-white text-xs rounded mb-2 font-mono">
-                <button class="btn btn-primary text-xs w-full py-1.5" onclick="copyInputUrl('kit_gk')"><i class="fa-solid fa-copy"></i> Copy GK Kit URL</button>
+                <button class="btn btn-primary text-xs w-full py-1.5" onclick="copyInputUrl('kit_gk')">📋 Copy GK Kit URL</button>
             </div>
         </div>
     `;
@@ -775,9 +775,9 @@ function renderFriendsPage() {
                     </div>
                 </div>
                 <div>
-                    ${isFriend ? `<button class="btn btn-primary text-xs px-3 py-1" onclick="selectChatFriend(${u.id})"><i class="fa-solid fa-comments"></i> Chat</button>` :
+                    ${isFriend ? `<button class="btn btn-primary text-xs px-3 py-1" onclick="selectChatFriend(${u.id})">💬 Chat</button>` :
                       hasRequested ? `<span class="text-[10px] bg-epl-purple text-epl-mint px-2 py-1 rounded font-bold">Request Sent</span>` :
-                      `<button class="btn text-xs px-3 py-1 bg-epl-pink text-white" onclick="sendFriendRequest(${u.id})"><i class="fa-solid fa-user-plus"></i> Add</button>`
+                      `<button class="btn text-xs px-3 py-1 bg-epl-pink text-white" onclick="sendFriendRequest(${u.id})">👤 Add</button>`
                     }
                 </div>
             </div>
@@ -803,7 +803,7 @@ async function selectChatFriend(friendId) {
     activeChatFriendId = friendId;
     const friend = (window.db.users || []).find(u => u.id === friendId);
 
-    document.getElementById('chatHeaderTitle').innerHTML = friend ? `<i class="fa-solid fa-comments text-epl-pink"></i> Chat with ${friend.name} (${friend.team})` : 'Chat Room';
+    document.getElementById('chatHeaderTitle').innerHTML = friend ? `💬 Chat with ${friend.name} (${friend.team})` : '💬 Chat Room';
     document.getElementById('chatForm').style.display = 'flex';
     await renderChatMessages();
 }
@@ -902,7 +902,7 @@ function openNotifications() {
             return `
                 <div class="bg-black/50 p-2.5 rounded-lg mb-2 flex justify-between items-center border border-epl-border">
                     <span class="text-xs text-white">${reqUser ? reqUser.name : 'User'} wants to connect</span>
-                    <button class="btn btn-primary text-xs px-3 py-1" onclick="acceptFriendRequest(${reqId})"><i class="fa-solid fa-check"></i> Accept</button>
+                    <button class="btn btn-primary text-xs px-3 py-1" onclick="acceptFriendRequest(${reqId})">✅ Accept</button>
                 </div>
             `;
         }).join('');
@@ -912,7 +912,7 @@ function openNotifications() {
         html += '<h4 class="text-epl-cyan text-xs font-bold uppercase my-2">Broadcasting Updates</h4>';
         html += userNotifs.map(n => `
             <div class="bg-black/40 p-2.5 rounded-lg mb-2 text-xs text-gray-200 border border-white/5">
-                <i class="fa-solid fa-bullhorn text-epl-pink mr-1"></i> ${n.text}
+                📢 ${n.text}
             </div>
         `).join('');
     }
@@ -947,7 +947,7 @@ function renderNotificationsBadge() {
     badge.innerText = count;
 }
 
-// ADMIN: DASHBOARD & MANAGEMENT
+// ADMIN: DASHBOARD & MANAGEMENT (COMPACT MOBILE RESPONSIVE)
 function renderAdminDashboard() {
     document.getElementById('statTotalUsers').innerText = (window.db.users || []).filter(u => u.role !== 'admin').length;
     document.getElementById('statTotalTournaments').innerText = (window.db.tournaments || []).length;
@@ -955,16 +955,28 @@ function renderAdminDashboard() {
 
     const tbody = document.getElementById('adminUsersTableBody');
     if (tbody) {
-        tbody.innerHTML = (window.db.users || []).map((u, index) => `
-            <tr>
-                <td>${index + 1}</td>
-                <td class="font-bold">${u.name}</td>
-                <td>${u.team}</td>
-                <td>*****</td>
-                <td><span class="text-[10px] px-2 py-0.5 rounded font-bold ${u.online ? 'bg-epl-mint/20 text-epl-mint' : 'bg-gray-500/20 text-gray-400'}">${u.online ? 'Online' : 'Offline'}</span></td>
-                <td><button class="btn text-xs px-2 py-1 bg-epl-pink text-white" onclick="deleteUser(${u.id})"><i class="fa-solid fa-trash"></i></button></td>
-            </tr>
-        `).join('');
+        const users = (window.db.users || []).filter(u => u.role !== 'admin');
+        if (users.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center text-xs py-3 text-gray-400">No registered members yet.</td></tr>';
+        } else {
+            tbody.innerHTML = users.map((u, index) => `
+                <tr class="border-b border-white/5 hover:bg-white/5">
+                    <td class="py-2 px-2 text-center text-gray-400 font-mono">${index + 1}</td>
+                    <td class="py-2 px-2 font-bold text-white">${u.name}</td>
+                    <td class="py-2 px-2 text-epl-cyan">${u.team}</td>
+                    <td class="py-2 px-2 text-center">
+                        <span class="inline-block text-[10px] px-2 py-0.5 rounded-full font-bold ${u.online ? 'bg-epl-mint/20 text-epl-mint border border-epl-mint/30' : 'bg-gray-500/20 text-gray-400'}">
+                            ${u.online ? 'Online' : 'Offline'}
+                        </span>
+                    </td>
+                    <td class="py-2 px-2 text-center">
+                        <button class="btn text-[10px] px-2 py-1 bg-epl-pink/90 hover:bg-epl-pink text-white rounded" onclick="deleteUser(${u.id})">
+                            🗑️
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
     }
 
     renderAdminTournamentsList();
@@ -1022,12 +1034,12 @@ function renderAdminTournamentsList() {
     }
 
     container.innerHTML = list.map(t => `
-        <div class="bg-black/40 p-3 rounded-lg mb-2 flex justify-between items-center border border-epl-border">
+        <div class="bg-black/40 p-2.5 rounded-lg mb-2 flex justify-between items-center border border-epl-border">
             <div>
                 <div class="font-bold text-xs text-white">${t.name}</div>
-                <div class="text-[10px] text-gray-400">${(t.rules || '').substring(0, 50)}...</div>
+                <div class="text-[10px] text-gray-400">${(t.rules || '').substring(0, 40)}...</div>
             </div>
-            <button class="btn text-xs px-2.5 py-1 bg-epl-pink text-white" onclick="deleteTournament(${t.id})"><i class="fa-solid fa-trash"></i> Delete</button>
+            <button class="btn text-xs px-2.5 py-1 bg-epl-pink text-white" onclick="deleteTournament(${t.id})">🗑️ Delete</button>
         </div>
     `).join('');
 }
@@ -1079,19 +1091,19 @@ function renderAdminFixturesManagement() {
     }
 
     container.innerHTML = fixtures.map(f => `
-        <div class="bg-black/50 p-3 rounded-lg mb-2 flex flex-wrap justify-between items-center gap-2 border border-epl-border">
+        <div class="bg-black/50 p-2.5 rounded-lg mb-2 flex flex-wrap justify-between items-center gap-2 border border-epl-border">
             <div>
                 <span class="text-[10px] text-epl-cyan font-semibold block">${f.weekday}, ${f.date} | ${f.time}</span>
                 <div class="font-bold text-xs text-white">${f.home} vs ${f.away}</div>
             </div>
             <div class="flex items-center gap-2">
                 ${f.played ? `<span class="text-xs font-bold text-epl-mint">${f.homeScore} - ${f.awayScore} (Played)</span>` : `
-                    <input type="number" id="homeScore_${f.id}" placeholder="H" class="w-12 p-1 text-center bg-black border border-epl-border text-white text-xs rounded">
+                    <input type="number" id="homeScore_${f.id}" placeholder="H" class="w-10 p-1 text-center bg-black border border-epl-border text-white text-xs rounded">
                     <span class="text-white text-xs">-</span>
-                    <input type="number" id="awayScore_${f.id}" placeholder="A" class="w-12 p-1 text-center bg-black border border-epl-border text-white text-xs rounded">
-                    <button class="btn btn-primary text-xs px-2.5 py-1" onclick="submitMatchResult(${f.id})">Save</button>
+                    <input type="number" id="awayScore_${f.id}" placeholder="A" class="w-10 p-1 text-center bg-black border border-epl-border text-white text-xs rounded">
+                    <button class="btn btn-primary text-xs px-2 py-1" onclick="submitMatchResult(${f.id})">Save</button>
                 `}
-                <button class="btn text-xs px-2 py-1 bg-epl-pink text-white" onclick="deleteFixture(${f.id})"><i class="fa-solid fa-trash"></i></button>
+                <button class="btn text-xs px-2 py-1 bg-epl-pink text-white" onclick="deleteFixture(${f.id})">🗑️</button>
             </div>
         </div>
     `).join('');
@@ -1191,13 +1203,20 @@ function renderAdminModeration() {
     if (!tbody) return;
 
     const users = (window.db.users || []).filter(u => u.role !== 'admin');
+    if (users.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" class="text-center text-xs py-3 text-gray-400">No users to moderate.</td></tr>';
+        return;
+    }
+
     tbody.innerHTML = users.map(u => `
-        <tr>
-            <td class="font-bold">${u.name}</td>
-            <td>${u.team}</td>
-            <td>Player</td>
-            <td>
-                <button class="btn text-xs px-2 py-1 bg-epl-pink text-white" onclick="deleteUser(${u.id})"><i class="fa-solid fa-ban"></i> Ban / Delete</button>
+        <tr class="border-b border-white/5 hover:bg-white/5">
+            <td class="py-2 px-3 font-bold text-white">${u.name}</td>
+            <td class="py-2 px-3 text-epl-cyan">${u.team}</td>
+            <td class="py-2 px-3"><span class="text-[10px] bg-epl-purple text-epl-mint px-2 py-0.5 rounded font-bold uppercase">Player</span></td>
+            <td class="py-2 px-3 text-center">
+                <button class="btn text-[10px] px-2.5 py-1 bg-epl-pink text-white rounded inline-flex items-center gap-1" onclick="deleteUser(${u.id})">
+                    🚫 Ban / Delete
+                </button>
             </td>
         </tr>
     `).join('');

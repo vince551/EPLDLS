@@ -6,8 +6,8 @@
     /* EPL Signature Color Palette */
     --epl-purple: #38003c;
     --epl-dark-purple: #0f051d;
-    --epl-card-bg: rgba(26, 11, 46, 0.78);
-    --epl-card-hover: rgba(42, 16, 70, 0.9);
+    --epl-card-bg: rgba(26, 11, 46, 0.82);
+    --epl-card-hover: rgba(42, 16, 70, 0.92);
     
     /* Neon Broadcast Accents */
     --epl-pink: #e90052;
@@ -61,6 +61,32 @@ body {
         padding-bottom: 0;
     }
 }
+
+/* --- Fallback Icons (Ensures Icons ALWAYS Display Even If Offline/Blocked) --- */
+.fa-trophy:empty::before { content: "🏆"; font-style: normal; }
+.fa-house:empty::before { content: "🏠"; font-style: normal; }
+.fa-calendar-days:empty::before, .fa-calendar-day:empty::before, .fa-calendar-check:empty::before, .fa-calendar-plus:empty::before { content: "📅"; font-style: normal; }
+.fa-shirt:empty::before { content: "👕"; font-style: normal; }
+.fa-user-group:empty::before, .fa-users:empty::before { content: "👥"; font-style: normal; }
+.fa-user-gear:empty::before, .fa-user:empty::before, .fa-user-plus:empty::before, .fa-user-check:empty::before { content: "👤"; font-style: normal; }
+.fa-comments:empty::before, .fa-comment:empty::before { content: "💬"; font-style: normal; }
+.fa-bell:empty::before { content: "🔔"; font-style: normal; }
+.fa-chart-pie:empty::before { content: "📊"; font-style: normal; }
+.fa-right-from-bracket:empty::before, .fa-right-to-bracket:empty::before { content: "🚪"; font-style: normal; }
+.fa-copy:empty::before { content: "📋"; font-style: normal; }
+.fa-paper-plane:empty::before { content: "🚀"; font-style: normal; }
+.fa-trash:empty::before, .fa-ban:empty::before { content: "🗑️"; font-style: normal; }
+.fa-check:empty::before, .fa-circle-check:empty::before { content: "✅"; font-style: normal; }
+.fa-magnifying-glass:empty::before { content: "🔍"; font-style: normal; }
+.fa-clock:empty::before { content: "⏰"; font-style: normal; }
+.fa-plus:empty::before { content: "➕"; font-style: normal; }
+.fa-key:empty::before { content: "🔑"; font-style: normal; }
+.fa-shield-halved:empty::before { content: "🛡️"; font-style: normal; }
+.fa-camera:empty::before { content: "📷"; font-style: normal; }
+.fa-xmark:empty::before { content: "✖"; font-style: normal; }
+.fa-bullhorn:empty::before { content: "📢"; font-style: normal; }
+.fa-circle-play:empty::before { content: "▶️"; font-style: normal; }
+.fa-layer-group:empty::before, .fa-list-ul:empty::before, .fa-table-list:empty::before { content: "📋"; font-style: normal; }
 
 /* --- Custom Scrollbar --- */
 ::-webkit-scrollbar {
@@ -140,18 +166,18 @@ header {
     backdrop-filter: var(--glass-blur);
     -webkit-backdrop-filter: var(--glass-blur);
     border-bottom: 1px solid var(--epl-border);
-    padding: 14px 24px;
+    padding: 12px 20px;
     display: flex;
     justify-content: space-between;
     align-items: center;
     position: sticky;
-    top: 36px; /* Offset under marquee */
+    top: 36px;
     z-index: 100;
     box-shadow: 0 10px 30px rgba(0,0,0,0.5);
 }
 
 .brand {
-    font-size: 22px;
+    font-size: 20px;
     font-weight: 900;
     font-style: italic;
     letter-spacing: 1px;
@@ -163,9 +189,9 @@ header {
 .brand-epl {
     background: linear-gradient(135deg, var(--epl-pink), #ff2a70);
     color: #fff;
-    padding: 3px 10px;
+    padding: 3px 8px;
     border-radius: var(--radius-sm);
-    margin-right: 8px;
+    margin-right: 6px;
     box-shadow: 0 0 14px var(--epl-pink-glow);
 }
 
@@ -250,7 +276,7 @@ nav {
 
 @media (max-width: 768px) {
     header nav {
-        display: none !important; /* Hide desktop nav on mobile */
+        display: none !important;
     }
 
     .mobile-bottom-nav {
@@ -259,15 +285,15 @@ nav {
         bottom: 0;
         left: 0;
         right: 0;
-        height: 66px;
-        background: rgba(15, 5, 29, 0.94);
+        height: 62px;
+        background: rgba(15, 5, 29, 0.96);
         backdrop-filter: blur(24px);
         -webkit-backdrop-filter: blur(24px);
         border-top: 1px solid var(--epl-border);
         z-index: 1000;
         justify-content: space-around;
         align-items: center;
-        padding: 4px 8px;
+        padding: 4px 6px;
         box-shadow: 0 -10px 25px rgba(0,0,0,0.7);
     }
 
@@ -281,7 +307,7 @@ nav {
         text-decoration: none;
         font-size: 10px;
         font-weight: 700;
-        padding: 6px 0;
+        padding: 4px 0;
         border: none;
         background: transparent;
         cursor: pointer;
@@ -290,8 +316,8 @@ nav {
     }
 
     .mobile-nav-item i {
-        font-size: 18px;
-        margin-bottom: 3px;
+        font-size: 17px;
+        margin-bottom: 2px;
         transition: var(--transition);
     }
 
@@ -309,8 +335,8 @@ nav {
 /* --- Container & Layout --- */
 .container {
     max-width: 1100px;
-    margin: 24px auto;
-    padding: 0 16px;
+    margin: 20px auto;
+    padding: 0 14px;
     flex: 1;
     width: 100%;
 }
@@ -320,10 +346,10 @@ nav {
     background: var(--epl-card-bg);
     backdrop-filter: var(--glass-blur);
     -webkit-backdrop-filter: var(--glass-blur);
-    padding: 24px;
+    padding: 20px;
     border-radius: var(--radius-md);
     border: 1px solid var(--epl-border);
-    margin-bottom: 20px;
+    margin-bottom: 16px;
     box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
     transition: var(--transition);
     position: relative;
@@ -345,7 +371,6 @@ nav {
 .card:hover {
     background: var(--epl-card-hover);
     border-color: var(--epl-border-glow);
-    transform: translateY(-2px);
 }
 
 .card:hover::before {
@@ -353,34 +378,56 @@ nav {
 }
 
 .card-header {
-    font-size: 16px;
+    font-size: 15px;
     font-weight: 900;
     color: var(--epl-mint);
-    margin-bottom: 18px;
-    border-left: 5px solid var(--epl-pink);
-    padding-left: 12px;
+    margin-bottom: 16px;
+    border-left: 4px solid var(--epl-pink);
+    padding-left: 10px;
     text-transform: uppercase;
-    letter-spacing: 1px;
+    letter-spacing: 0.8px;
     display: flex;
     justify-content: space-between;
     align-items: center;
     flex-wrap: wrap;
-    gap: 8px;
+    gap: 6px;
 }
 
-/* --- Dashboard Grid & Stat Cards --- */
+/* --- Admin Stat Boxes (Mobile Compact Layout) --- */
 .dashboard-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 16px;
-    margin-bottom: 20px;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-bottom: 16px;
+}
+
+@media (max-width: 480px) {
+    .dashboard-grid {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 6px;
+    }
+
+    .stat-box {
+        padding: 10px 8px !important;
+        text-align: center;
+    }
+
+    .stat-box h4 {
+        font-size: 9px !important;
+        letter-spacing: 0.2px !important;
+        margin-bottom: 2px !important;
+    }
+
+    .stat-box span {
+        font-size: 20px !important;
+    }
 }
 
 .stat-box {
-    background: rgba(10, 0, 15, 0.75);
+    background: rgba(10, 0, 15, 0.8);
     border: 1px solid var(--epl-border);
     border-radius: var(--radius-sm);
-    padding: 18px;
+    padding: 14px 12px;
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -391,7 +438,6 @@ nav {
 
 .stat-box:hover {
     border-color: var(--epl-mint);
-    transform: translateY(-2px);
 }
 
 .stat-box::after {
@@ -405,43 +451,78 @@ nav {
 }
 
 .stat-box h4 {
-    font-size: 11px;
+    font-size: 10px;
     color: var(--epl-text-sub);
     text-transform: uppercase;
-    letter-spacing: 1px;
-    margin-bottom: 6px;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
     font-weight: 800;
 }
 
 .stat-box span {
-    font-size: 28px;
+    font-size: 24px;
     font-weight: 900;
     color: #fff;
 }
 
+/* --- Responsive Compact Tables & Mobile Cards --- */
+table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    margin-top: 8px;
+    font-size: 12px;
+    text-align: left;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--epl-border);
+    overflow: hidden;
+}
+
+th {
+    background: rgba(45, 0, 52, 0.92);
+    color: var(--epl-cyan);
+    padding: 10px 12px;
+    text-transform: uppercase;
+    font-size: 10px;
+    letter-spacing: 0.8px;
+    font-weight: 800;
+    border-bottom: 2px solid var(--epl-border);
+}
+
+td {
+    padding: 10px 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    color: var(--epl-text-main);
+    background: rgba(15, 0, 20, 0.5);
+}
+
+tr:hover td {
+    background: rgba(255, 255, 255, 0.05);
+}
+
 /* --- Form Controls & Inputs --- */
 .form-group {
-    margin-bottom: 16px;
+    margin-bottom: 14px;
 }
 
 .form-group label {
     display: block;
-    font-size: 11px;
+    font-size: 10px;
     font-weight: 800;
     color: var(--epl-mint);
-    margin-bottom: 6px;
+    margin-bottom: 4px;
     text-transform: uppercase;
     letter-spacing: 0.8px;
 }
 
 input, select, textarea {
     width: 100%;
-    padding: 12px 14px;
-    background: rgba(10, 0, 15, 0.75);
+    padding: 10px 12px;
+    background: rgba(10, 0, 15, 0.8);
     border: 1px solid var(--epl-border);
     border-radius: var(--radius-sm);
     color: var(--epl-text-main);
-    font-size: 14px;
+    font-size: 13px;
     outline: none;
     transition: var(--transition);
 }
@@ -449,24 +530,24 @@ input, select, textarea {
 input:focus, select:focus, textarea:focus {
     border-color: var(--epl-mint);
     background: rgba(20, 0, 30, 0.95);
-    box-shadow: 0 0 12px var(--epl-mint-glow);
+    box-shadow: 0 0 10px var(--epl-mint-glow);
 }
 
 /* --- Buttons --- */
 .btn {
-    padding: 12px 18px;
+    padding: 10px 16px;
     border: none;
     border-radius: var(--radius-sm);
     font-weight: 800;
     text-transform: uppercase;
     letter-spacing: 0.8px;
-    font-size: 12px;
+    font-size: 11px;
     cursor: pointer;
     transition: var(--transition);
     display: inline-flex;
     justify-content: center;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
     touch-action: manipulation;
 }
 
@@ -477,14 +558,14 @@ input:focus, select:focus, textarea:focus {
 }
 
 .btn-primary:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 22px var(--epl-mint-glow);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px var(--epl-mint-glow);
 }
 
 /* --- Page Transitions --- */
 .page {
     display: none;
-    animation: fadeIn 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    animation: fadeIn 0.25s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 
 .page.active {
@@ -492,57 +573,22 @@ input:focus, select:focus, textarea:focus {
 }
 
 @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(6px); }
+    from { opacity: 0; transform: translateY(4px); }
     to { opacity: 1; transform: translateY(0); }
-}
-
-/* --- Tables --- */
-table {
-    width: 100%;
-    border-collapse: separate;
-    border-spacing: 0;
-    margin-top: 10px;
-    font-size: 13px;
-    text-align: left;
-    border-radius: var(--radius-sm);
-    border: 1px solid var(--epl-border);
-    overflow: hidden;
-}
-
-th {
-    background: rgba(45, 0, 52, 0.92);
-    color: var(--epl-cyan);
-    padding: 12px 14px;
-    text-transform: uppercase;
-    font-size: 11px;
-    letter-spacing: 1px;
-    font-weight: 800;
-    border-bottom: 2px solid var(--epl-border);
-}
-
-td {
-    padding: 12px 14px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-    color: var(--epl-text-main);
-    background: rgba(15, 0, 20, 0.5);
-}
-
-tr:hover td {
-    background: rgba(255, 255, 255, 0.05);
 }
 
 /* --- Team Kits Grid --- */
 .team-kits-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-    gap: 16px;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 12px;
 }
 
 .team-kit-card {
     background: rgba(10, 0, 15, 0.8);
     border: 1px solid var(--epl-border);
     border-radius: var(--radius-sm);
-    padding: 14px;
+    padding: 12px;
     text-align: center;
     cursor: pointer;
     transition: var(--transition);
@@ -550,16 +596,15 @@ tr:hover td {
 
 .team-kit-card:hover {
     border-color: var(--epl-mint);
-    transform: translateY(-3px);
-    box-shadow: 0 8px 20px rgba(0, 255, 135, 0.2);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 255, 135, 0.2);
 }
 
 .team-kit-card img {
-    width: 60px;
-    height: 60px;
+    width: 50px;
+    height: 50px;
     object-fit: contain;
-    margin-bottom: 8px;
-
+    margin-bottom: 6px;
 }
 
 /* --- Modals --- */
@@ -569,7 +614,7 @@ tr:hover td {
     left: 0;
     width: 100vw;
     height: 100vh;
-    background: rgba(0, 0, 0, 0.8);
+    background: rgba(0, 0, 0, 0.85);
     backdrop-filter: blur(12px);
     display: flex;
     justify-content: center;
@@ -577,8 +622,8 @@ tr:hover td {
     z-index: 2000;
     opacity: 0;
     pointer-events: none;
-    transition: opacity 0.25s ease;
-    padding: 16px;
+    transition: opacity 0.2s ease;
+    padding: 12px;
 }
 
 .modal.active {
@@ -588,7 +633,7 @@ tr:hover td {
 
 .modal-content {
     width: 100%;
-    max-width: 600px;
+    max-width: 580px;
     max-height: 88vh;
     overflow-y: auto;
 }
@@ -601,7 +646,7 @@ tr:hover td {
     z-index: 3000;
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 8px;
     pointer-events: none;
 }
 
@@ -619,15 +664,15 @@ tr:hover td {
     background: rgba(25, 5, 40, 0.95);
     border: 1px solid var(--epl-mint);
     color: #fff;
-    padding: 12px 18px;
+    padding: 10px 14px;
     border-radius: var(--radius-sm);
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 700;
     box-shadow: 0 8px 25px rgba(0, 0, 0, 0.6), 0 0 15px var(--epl-mint-glow);
     display: flex;
     align-items: center;
-    gap: 10px;
-    animation: toastIn 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    gap: 8px;
+    animation: toastIn 0.25s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 
 .toast-item.error {
@@ -636,26 +681,26 @@ tr:hover td {
 }
 
 @keyframes toastIn {
-    from { opacity: 0; transform: translateY(-12px) scale(0.95); }
+    from { opacity: 0; transform: translateY(-10px) scale(0.95); }
     to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 /* --- PWA Install Banner --- */
 #pwaInstallBanner {
     position: fixed;
-    bottom: 74px; /* Above mobile navbar */
-    left: 16px;
-    right: 16px;
+    bottom: 70px;
+    left: 12px;
+    right: 12px;
     z-index: 990;
     background: linear-gradient(135deg, rgba(56, 0, 60, 0.96), rgba(15, 5, 29, 0.98));
     border: 1px solid var(--epl-mint);
     border-radius: var(--radius-md);
-    padding: 12px 16px;
+    padding: 10px 14px;
     display: flex;
     align-items: center;
     justify-content: space-between;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8), 0 0 15px var(--epl-mint-glow);
-    animation: slideUp 0.4s ease-out;
+    animation: slideUp 0.35s ease-out;
 }
 
 @media (min-width: 769px) {
@@ -663,7 +708,7 @@ tr:hover td {
         bottom: 20px;
         left: auto;
         right: 20px;
-        max-width: 380px;
+        max-width: 360px;
     }
 }
 

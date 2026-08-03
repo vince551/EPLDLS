@@ -2,7 +2,7 @@
    EPL DLS HUB - SERVICE WORKER (PWA ENGINE)
    ========================================================================== */
 
-const CACHE_NAME = 'epldls-hub-v1.0.0';
+const CACHE_NAME = 'epldls-hub-v1.0.1';
 const STATIC_ASSETS = [
     './',
     './index.html',
@@ -15,6 +15,8 @@ const STATIC_ASSETS = [
     './images/icon-512.png',
     'https://cdn.tailwindcss.com',
     'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css',
+    'https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.1/css/all.min.css',
+    'https://unpkg.com/@fortawesome/fontawesome-free@6.5.1/css/all.min.css',
     'https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&display=swap'
 ];
 
@@ -60,7 +62,7 @@ self.addEventListener('fetch', (event) => {
             if (cachedResponse) {
                 // Fetch updated version in background for stale-while-revalidate strategy
                 fetch(event.request).then((networkResponse) => {
-                    if (networkResponse && networkResponse.status === 200) {
+                    if (networkResponse && (networkResponse.status === 200 || networkResponse.type === 'opaque')) {
                         caches.open(CACHE_NAME).then((cache) => {
                             cache.put(event.request, networkResponse);
                         });
@@ -71,7 +73,7 @@ self.addEventListener('fetch', (event) => {
             }
 
             return fetch(event.request).then((response) => {
-                if (!response || response.status !== 200 || response.type !== 'basic') {
+                if (!response || (response.status !== 200 && response.type !== 'opaque')) {
                     return response;
                 }
 
@@ -83,7 +85,7 @@ self.addEventListener('fetch', (event) => {
                 return response;
             }).catch(() => {
                 // Offline fallback page if network unavailable
-                if (event.request.headers.get('accept').includes('text/html')) {
+                if (event.request.headers?.get('accept')?.includes('text/html')) {
                     return caches.match('./index.html');
                 }
             });
