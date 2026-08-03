@@ -1,20 +1,16 @@
 /* ==========================================================================
    EPL DLS HUB - COMPLETE APP CONTROLLER & RUNTIME ENGINE
+   API Backend Target: https://api.sokomtaa.co.ke
    ========================================================================== */
 
-window.db = window.db || {
-    users: [
-        { id: 1, name: "Admin", team: "System HQ", pass: "admin123", role: "admin", online: true, statusColor: "status-online", pic: "", friendRequests: [], friends: [] },
-        { id: 2, name: "Alex Mercer", team: "Shadow Strikers", pass: "1234", role: "user", online: false, statusColor: "status-offline", pic: "", friendRequests: [], friends: [] },
-        { id: 3, name: "John Doe", team: "Red Dragons", pass: "1234", role: "user", online: false, statusColor: "status-offline", pic: "", friendRequests: [], friends: [] }
-    ],
-    tournaments: [
-        { id: 1, name: "Premier League DLS Cup", rules: "1. Respect match times.\n2. Submit screenshot proofs of final scores.", bgImage: "" }
-    ],
-    fixtures: [
-        { id: 101, tournId: 1, home: "Shadow Strikers", away: "Red Dragons", date: "2026-06-01", weekday: "Monday", time: "18:00", played: true, homeScore: 3, awayScore: 1 },
-        { id: 102, tournId: 1, home: "Red Dragons", away: "System HQ", date: "2026-06-03", weekday: "Wednesday", time: "20:00", played: false, homeScore: null, awayScore: null }
-    ],
+const API_BASE_URL = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+    ? './api'
+    : 'https://api.sokomtaa.co.ke/epldls';
+
+window.db = {
+    users: [],
+    tournaments: [],
+    fixtures: [],
     notifications: [],
     messages: []
 };
@@ -24,12 +20,86 @@ let activeChatFriendId = null;
 let activeFixturesFilter = 'all';
 
 // INITIALIZATION & ROUTING
-window.addEventListener('DOMContentLoaded', () => {
-    updateAndSync();
+window.addEventListener('DOMContentLoaded', async () => {
+    // Restore session from localStorage
+    const savedUser = localStorage.getItem('epldls_user');
+    if (savedUser) {
+        try {
+            currentUser = JSON.parse(savedUser);
+        } catch (e) {
+            localStorage.removeItem('epldls_user');
+        }
+    }
+
+    await updateAndSync();
     renderTeamKitsGrid();
+
+    if (currentUser) {
+        if (currentUser.role === 'admin') {
+            showPage('adminDashboard');
+        } else {
+            showPage('userHome');
+        }
+    } else {
+        showPage('authPage');
+    }
 });
 
-function updateAndSync() {
+// API CLIENT WRAPPER
+async function apiFetch(endpoint, options = {}) {
+    const url = endpoint.startsWith('http') ? endpoint : `${API_BASE_URL}${endpoint}`;
+
+    const config = {
+        headers: {
+            'Content-Type': 'application/json',
+            ...(options.headers || {})
+        },
+        ...options
+    };
+
+    if (config.body && typeof config.body === 'object') {
+        config.body = JSON.stringify(config.body);
+    }
+
+    try {
+        const response = await fetch(url, config);
+        const data = await response.json();
+        if (!response.ok) {
+            throw new Error(data.error || 'Server request failed');
+        }
+        return data;
+    } catch (err) {
+        console.warn('API Fetch Warning/Fallback:', err.message);
+        throw err;
+    }
+}
+
+async function updateAndSync() {
+    try {
+        const [tournaments, fixtures, users] = await Promise.all([
+            apiFetch('/tournaments.php?action=list').catch(() => window.db.tournaments),
+            apiFetch('/fixtures.php?action=list').catch(() => window.db.fixtures),
+            apiFetch('/users.php?action=list').catch(() => window.db.users)
+        ]);
+
+        if (Array.isArray(tournaments)) window.db.tournaments = tournaments;
+        if (Array.isArray(fixtures)) window.db.fixtures = fixtures;
+        if (Array.isArray(users)) window.db.users = users;
+
+        if (currentUser) {
+            const notifs = await apiFetch(`/notifications.php?action=list&userId=${currentUser.id}`).catch(() => []);
+            if (Array.isArray(notifs)) window.db.notifications = notifs;
+
+            const friendsData = await apiFetch(`/friends.php?action=list&userId=${currentUser.id}`).catch(() => null);
+            if (friendsData) {
+                currentUser.friends = friendsData.friends || [];
+                currentUser.friendRequests = friendsData.incomingRequests || [];
+            }
+        }
+    } catch (e) {
+        console.error('Error syncing database:', e);
+    }
+
     renderAll();
 }
 
@@ -40,7 +110,7 @@ function showPage(pageId) {
 
     // Update nav active states
     document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
-    event && event.target && event.target.classList.add('active');
+    if (window.event && window.event.target) window.event.target.classList.add('active');
 
     renderAll();
 }
@@ -85,91 +155,85 @@ function switchAuthTab(tab) {
     }
 }
 
-function handleLogin(e) {
+async function handleLogin(e) {
     e.preventDefault();
     const name = document.getElementById('loginName').value.trim();
     const pass = document.getElementById('loginPass').value.trim();
 
-    const user = window.db.users.find(u => u.name.toLowerCase() === name.toLowerCase() && u.pass === pass);
-    if (!user) {
-        return alert("Invalid username or password.");
+    try {
+        const res = await apiFetch('/auth.php?action=login', {
+            method: 'POST',
+            body: { name, pass }
+        });
+
+        currentUser = res.user;
+        localStorage.setItem('epldls_user', JSON.stringify(currentUser));
+
+        document.getElementById('loginName').value = '';
+        document.getElementById('loginPass').value = '';
+
+        if (currentUser.role === 'admin') {
+            showPage('adminDashboard');
+        } else {
+            showPage('userHome');
+        }
+        await updateAndSync();
+    } catch (err) {
+        alert(err.message || 'Invalid username or password.');
     }
-
-    currentUser = user;
-    user.online = true;
-    user.statusColor = 'status-online';
-
-    document.getElementById('loginName').value = '';
-    document.getElementById('loginPass').value = '';
-
-    if (user.role === 'admin') {
-        showPage('adminDashboard');
-    } else {
-        showPage('userHome');
-    }
-    updateAndSync();
 }
 
-function handleRegister(e) {
+async function handleRegister(e) {
     e.preventDefault();
     const name = document.getElementById('regName').value.trim();
     const team = document.getElementById('regTeam').value.trim();
     const pass = document.getElementById('regPass').value.trim();
 
-    if (window.db.users.some(u => u.name.toLowerCase() === name.toLowerCase())) {
-        return alert("Username already exists.");
+    try {
+        const res = await apiFetch('/auth.php?action=register', {
+            method: 'POST',
+            body: { name, team, pass }
+        });
+
+        currentUser = res.user;
+        localStorage.setItem('epldls_user', JSON.stringify(currentUser));
+
+        document.getElementById('regName').value = '';
+        document.getElementById('regTeam').value = '';
+        document.getElementById('regPass').value = '';
+
+        alert('Account created successfully!');
+        showPage('userHome');
+        await updateAndSync();
+    } catch (err) {
+        alert(err.message || 'Failed to create account.');
     }
-
-    const newUser = {
-        id: Date.now(),
-        name,
-        team,
-        pass,
-        role: 'user',
-        online: true,
-        statusColor: 'status-online',
-        pic: '',
-        friendRequests: [],
-        friends: []
-    };
-
-    window.db.users.push(newUser);
-    currentUser = newUser;
-
-    document.getElementById('regName').value = '';
-    document.getElementById('regTeam').value = '';
-    document.getElementById('regPass').value = '';
-
-    alert("Account created successfully!");
-    showPage('userHome');
-    updateAndSync();
 }
 
-function handleForgotPassword(e) {
+async function handleForgotPassword(e) {
     e.preventDefault();
     const name = document.getElementById('resetName').value.trim();
     const newPass = document.getElementById('resetNewPass').value.trim();
 
-    const user = window.db.users.find(u => u.name.toLowerCase() === name.toLowerCase());
-    if (!user) {
-        return alert("User not found with that name.");
-    }
+    try {
+        await apiFetch('/auth.php?action=reset_password', {
+            method: 'POST',
+            body: { name, newPass }
+        });
 
-    user.pass = newPass;
-    closeModal('forgotPassModal');
-    alert("Password reset successfully! You can now log in.");
+        closeModal('forgotPassModal');
+        alert('Password reset successfully! You can now log in.');
+    } catch (err) {
+        alert(err.message || 'User not found with that name.');
+    }
 }
 
 function logout() {
-    if (currentUser) {
-        currentUser.online = false;
-        currentUser.statusColor = 'status-offline';
-    }
     currentUser = null;
+    localStorage.removeItem('epldls_user');
     document.getElementById('userNav').style.display = 'none';
     document.getElementById('adminNav').style.display = 'none';
     showPage('authPage');
-    updateAndSync();
 }
 
 function renderNavigation() {
@@ -197,16 +261,15 @@ function renderTopPlayerMarquee() {
     const banner = document.getElementById('topPlayerBanner');
     if (!banner) return;
 
-    const playedFixtures = window.db.fixtures.filter(f => f.played && f.homeScore !== null && f.awayScore !== null);
+    const playedFixtures = (window.db.fixtures || []).filter(f => f.played && f.homeScore !== null && f.awayScore !== null);
     if (playedFixtures.length === 0) {
-        banner.innerText = "🏆 TOP PLAYER OF THE DAY: NO COMPLETED MATCHES YET TODAY 🏆";
+        banner.innerText = '🏆 TOP PLAYER OF THE DAY: NO COMPLETED MATCHES YET TODAY 🏆';
         return;
     }
 
-    // Pick top scorer/winner from latest fixture
     const latest = playedFixtures[playedFixtures.length - 1];
     const winningTeam = latest.homeScore > latest.awayScore ? latest.home : latest.away;
-    const topPlayerUser = window.db.users.find(u => u.team === winningTeam) || currentUser;
+    const topPlayerUser = (window.db.users || []).find(u => u.team === winningTeam) || currentUser;
 
     banner.innerText = `🏆 TOP PLAYER OF THE DAY: ${topPlayerUser ? topPlayerUser.name.toUpperCase() : 'STAR PLAYER'} (${winningTeam}) - LEADING THE LEAGUE STANDINGS! 🏆`;
 }
@@ -225,8 +288,8 @@ function renderUserHome() {
     const searchQuery = (document.getElementById('userTeamSearch')?.value || '').toLowerCase();
 
     container.innerHTML = tournaments.map(t => {
-        const tFixtures = window.db.fixtures.filter(f => f.tournId === t.id);
-        const filteredFixtures = tFixtures.filter(f => 
+        const tFixtures = (window.db.fixtures || []).filter(f => f.tournId === t.id);
+        const filteredFixtures = tFixtures.filter(f =>
             !searchQuery || f.home.toLowerCase().includes(searchQuery) || f.away.toLowerCase().includes(searchQuery)
         );
 
@@ -238,7 +301,7 @@ function renderUserHome() {
                 <p style="font-size:13px; color:var(--epl-text-sub); margin-bottom:12px;">${t.rules}</p>
                 <div style="margin-bottom:12px;">
                     <h5 style="color:var(--epl-mint); margin-bottom:6px;">Fixtures</h5>
-                    ${filteredFixtures.length === 0 ? '<p style="font-size:12px; color:var(--epl-text-sub);">No fixtures found matching search.</p>' : 
+                    ${filteredFixtures.length === 0 ? '<p style="font-size:12px; color:var(--epl-text-sub);">No fixtures found matching search.</p>' :
                         filteredFixtures.map(f => {
                             const isMyTeam = currentUser && (f.home === currentUser.team || f.away === currentUser.team);
                             return `
@@ -278,25 +341,21 @@ function renderTournamentsList() {
 }
 
 function openTournamentDetails(id) {
-    const t = window.db.tournaments.find(x => x.id === id);
+    const t = (window.db.tournaments || []).find(x => x.id === id);
     if (!t) return;
 
     document.getElementById('modalTournTitle').innerText = t.name;
     document.getElementById('modalTournRules').innerText = t.rules;
 
-    const tFixtures = window.db.fixtures.filter(f => f.tournId === t.id);
+    const tFixtures = (window.db.fixtures || []).filter(f => f.tournId === t.id);
 
-    // 1. Calculate Standings Dynamically from Fixtures & Registered Users
     const stats = {};
-    
-    // Initialize all registered teams with 0 stats
-    window.db.users.forEach(u => {
+    (window.db.users || []).forEach(u => {
         if (u.role !== 'admin' && u.team) {
             stats[u.team] = { played: 0, won: 0, drawn: 0, lost: 0, gf: 0, ga: 0, pts: 0 };
         }
     });
 
-    // Also catch any team in fixtures that might not be in the direct user list yet
     tFixtures.forEach(f => {
         if (!stats[f.home]) stats[f.home] = { played: 0, won: 0, drawn: 0, lost: 0, gf: 0, ga: 0, pts: 0 };
         if (!stats[f.away]) stats[f.away] = { played: 0, won: 0, drawn: 0, lost: 0, gf: 0, ga: 0, pts: 0 };
@@ -307,7 +366,6 @@ function openTournamentDetails(id) {
 
             hStats.played += 1;
             aStats.played += 1;
-
             hStats.gf += f.homeScore;
             hStats.ga += f.awayScore;
             aStats.gf += f.awayScore;
@@ -330,7 +388,6 @@ function openTournamentDetails(id) {
         }
     });
 
-    // Convert stats object to sorted array (Sort by Points desc, then Goal Difference desc, then Goals For desc)
     const standingsArray = Object.keys(stats).map(teamName => {
         const s = stats[teamName];
         return {
@@ -344,7 +401,6 @@ function openTournamentDetails(id) {
         return b.gf - a.gf;
     });
 
-    // Render Standings Table Body
     const standingsBody = document.getElementById('modalTournStandingsBody');
     if (standingsArray.length === 0 || standingsArray.every(s => s.played === 0 && s.pts === 0 && Object.keys(stats).length === 0)) {
         standingsBody.innerHTML = `<tr><td colspan="10" style="text-align:center; color:var(--epl-text-sub);">No match stats available yet.</td></tr>`;
@@ -365,7 +421,6 @@ function openTournamentDetails(id) {
         `).join('');
     }
 
-    // Render Fixtures Inside Modal
     const container = document.getElementById('modalTournFixturesList');
     if (tFixtures.length === 0) {
         container.innerHTML = '<p style="font-size:13px; color:var(--epl-text-sub);">No fixtures scheduled for this tournament yet.</p>';
@@ -403,7 +458,6 @@ function renderUserFixturesGrouped() {
         return;
     }
 
-    // Group by date & weekday
     const groups = {};
     fixtures.forEach(f => {
         const key = `${f.weekday}, ${f.date}`;
@@ -551,7 +605,7 @@ function renderFriendsPage() {
     if (!container) return;
 
     const query = (document.getElementById('friendSearchInput')?.value || '').toLowerCase();
-    const otherUsers = window.db.users.filter(u => u.id !== currentUser.id && u.role !== 'admin');
+    const otherUsers = (window.db.users || []).filter(u => u.id !== currentUser.id && u.role !== 'admin');
 
     const filtered = otherUsers.filter(u => u.name.toLowerCase().includes(query) || u.team.toLowerCase().includes(query));
 
@@ -561,8 +615,8 @@ function renderFriendsPage() {
     }
 
     container.innerHTML = filtered.map(u => {
-        const isFriend = currentUser.friends.includes(u.id);
-        const hasRequested = currentUser.friendRequests && currentUser.friendRequests.includes(u.id);
+        const isFriend = (currentUser.friends || []).includes(u.id);
+        const hasRequested = (currentUser.friendRequests || []).includes(u.id);
 
         return `
             <div style="background:rgba(0,0,0,0.4); padding:10px; border-radius:8px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
@@ -587,109 +641,114 @@ function renderFriendsPage() {
     }).join('');
 }
 
-function sendFriendRequest(targetId) {
-    const target = window.db.users.find(u => u.id === targetId);
-    if (!target) return;
-
-    target.friendRequests = target.friendRequests || [];
-    if (!target.friendRequests.includes(currentUser.id)) {
-        target.friendRequests.push(currentUser.id);
-        window.db.notifications.push({
-            id: Date.now(),
-            userId: target.id,
-            text: `${currentUser.name} sent you a friend request!`
+async function sendFriendRequest(targetId) {
+    if (!currentUser) return;
+    try {
+        await apiFetch('/friends.php?action=request', {
+            method: 'POST',
+            body: { userId: currentUser.id, targetId }
         });
         alert("Friend request sent!");
-        renderAll();
+        await updateAndSync();
+    } catch (err) {
+        alert(err.message || "Failed to send friend request.");
     }
 }
 
-function selectChatFriend(friendId) {
+async function selectChatFriend(friendId) {
     activeChatFriendId = friendId;
-    const friend = window.db.users.find(u => u.id === friendId);
-    if (!friend) return;
+    const friend = (window.db.users || []).find(u => u.id === friendId);
 
-    document.getElementById('chatHeaderTitle').innerText = `Chat with ${friend.name} (${friend.team})`;
+    document.getElementById('chatHeaderTitle').innerText = friend ? `Chat with ${friend.name} (${friend.team})` : 'Chat Room';
     document.getElementById('chatForm').style.display = 'flex';
-    renderChatMessages();
+    await renderChatMessages();
 }
 
-function renderChatMessages() {
+async function renderChatMessages() {
     const container = document.getElementById('chatBoxContainer');
-    if (!container || !activeChatFriendId) return;
+    if (!container || !activeChatFriendId || !currentUser) return;
 
-    const msgs = window.db.messages.filter(m => 
-        (m.senderId === currentUser.id && m.receiverId === activeChatFriendId) ||
-        (m.senderId === activeChatFriendId && m.receiverId === currentUser.id)
-    );
+    try {
+        const msgs = await apiFetch(`/messages.php?action=list&user_id=${currentUser.id}&friend_id=${activeChatFriendId}`).catch(() => []);
 
-    if (msgs.length === 0) {
-        container.innerHTML = '<p class="text-sub">No messages yet. Say hello!</p>';
-        return;
+        if (msgs.length === 0) {
+            container.innerHTML = '<p class="text-sub">No messages yet. Say hello!</p>';
+            return;
+        }
+
+        container.innerHTML = msgs.map(m => `
+            <div style="margin-bottom:8px; text-align:${m.senderId === currentUser.id ? 'right' : 'left'};">
+                <span style="display:inline-block; padding:6px 10px; border-radius:8px; background:${m.senderId === currentUser.id ? 'var(--epl-purple)' : 'rgba(255,255,255,0.1)'}; color:#fff; font-size:12px;">${m.message || m.text}</span>
+            </div>
+        `).join('');
+        container.scrollTop = container.scrollHeight;
+    } catch (e) {
+        container.innerHTML = '<p class="text-sub">Unable to load messages.</p>';
     }
-
-    container.innerHTML = msgs.map(m => `
-        <div style="margin-bottom:8px; text-align:${m.senderId === currentUser.id ? 'right' : 'left'};">
-            <span style="display:inline-block; padding:6px 10px; border-radius:8px; background:${m.senderId === currentUser.id ? 'var(--epl-purple)' : 'rgba(255,255,255,0.1)'}; color:#fff; font-size:12px;">${m.text}</span>
-        </div>
-    `).join('');
-    container.scrollTop = container.scrollHeight;
 }
 
-function handleSendMessage(e) {
+async function handleSendMessage(e) {
     e.preventDefault();
-    if (!activeChatFriendId) return;
+    if (!activeChatFriendId || !currentUser) return;
 
     const input = document.getElementById('chatMessageInput');
-    const text = input.value.trim();
-    if (!text) return;
+    const message = input.value.trim();
+    if (!message) return;
 
-    window.db.messages.push({
-        id: Date.now(),
-        senderId: currentUser.id,
-        receiverId: activeChatFriendId,
-        text
-    });
-
-    input.value = '';
-    renderChatMessages();
+    try {
+        await apiFetch('/messages.php?action=send', {
+            method: 'POST',
+            body: { senderId: currentUser.id, receiverId: activeChatFriendId, message }
+        });
+        input.value = '';
+        await renderChatMessages();
+    } catch (err) {
+        alert(err.message || 'Failed to send message.');
+    }
 }
 
 // USER: PROFILE
 function renderProfilePage() {
     if (!currentUser) return;
-    document.getElementById('profileFullName').value = currentUser.name;
-    document.getElementById('profileTeamName').value = currentUser.team;
+    document.getElementById('profileFullName').value = currentUser.name || '';
+    document.getElementById('profileTeamName').value = currentUser.team || '';
     document.getElementById('profilePicUrl').value = currentUser.pic || '';
     document.getElementById('profilePreviewImg').src = currentUser.pic || 'https://via.placeholder.com/100?text=Avatar';
 }
 
-function handleUpdateProfile(e) {
+async function handleUpdateProfile(e) {
     e.preventDefault();
     if (!currentUser) return;
 
-    currentUser.name = document.getElementById('profileFullName').value.trim();
-    currentUser.team = document.getElementById('profileTeamName').value.trim();
-    currentUser.pic = document.getElementById('profilePicUrl').value.trim();
-    const newPass = document.getElementById('profilePassword').value.trim();
+    const pic = document.getElementById('profilePicUrl').value.trim();
+    const team = document.getElementById('profileTeamName').value.trim();
 
-    if (newPass) currentUser.pass = newPass;
+    try {
+        const res = await apiFetch('/auth.php?action=update_profile', {
+            method: 'POST',
+            body: { id: currentUser.id, pic, team }
+        });
 
-    alert("Profile updated successfully!");
-    renderAll();
+        currentUser = { ...currentUser, ...res.user };
+        localStorage.setItem('epldls_user', JSON.stringify(currentUser));
+
+        alert("Profile updated successfully!");
+        await updateAndSync();
+    } catch (err) {
+        alert(err.message || "Failed to update profile.");
+    }
 }
 
 // NOTIFICATIONS SYSTEM
 function openNotifications() {
     if (!currentUser) return;
-    const userNotifs = window.db.notifications.filter(n => n.userId === currentUser.id);
+    const userNotifs = (window.db.notifications || []).filter(n => n.userId === currentUser.id);
 
-    // Also check friend requests
     let reqsHtml = '';
     if (currentUser.friendRequests && currentUser.friendRequests.length > 0) {
         reqsHtml = '<h4 style="color:var(--epl-mint); margin-bottom:8px;">Friend Requests</h4>';
         reqsHtml += currentUser.friendRequests.map(reqId => {
-            const reqUser = window.db.users.find(u => u.id === reqId);
+            const reqUser = (window.db.users || []).find(u => u.id === reqId);
             return `
                 <div style="background:rgba(0,0,0,0.4); padding:8px; border-radius:6px; margin-bottom:6px; display:flex; justify-content:space-between; align-items:center;">
                     <span>${reqUser ? reqUser.name : 'User'} wants to connect</span>
@@ -699,52 +758,50 @@ function openNotifications() {
         }).join('');
     }
 
-    let notifHtml = '<h4 style="color:var(--epl-cyan); margin-bottom:8px; margin-top:10px;">Notifications</h4>';
-    if (userNotifs.length === 0) {
-        notifHtml += '<p style="font-size:12px; color:var(--epl-text-sub);">No new notifications.</p>';
-    } else {
-        notifHtml += userNotifs.map(n => `<div style="background:rgba(0,0,0,0.4); padding:8px; border-radius:6px; margin-bottom:6px; font-size:12px;">${n.text}</div>`).join('');
+    let notifHtml = '';
+    if (userNotifs.length > 0) {
+        notifHtml += userNotifs.map(n => n.text).join('\n• ');
     }
 
-    alert(currentUser.friendRequests?.length ? "You have pending friend requests or notifications!" : "No pending notifications.");
+    const messageAlert = (currentUser.friendRequests?.length ? "You have pending friend requests!\n" : "") + (notifHtml ? "Notifications:\n• " + notifHtml : "No pending notifications.");
+    alert(messageAlert);
 }
 
-function acceptFriendRequest(reqId) {
-    currentUser.friendRequests = currentUser.friendRequests.filter(id => id !== reqId);
-    if (!currentUser.friends.includes(reqId)) currentUser.friends.push(reqId);
-
-    const reqUser = window.db.users.find(u => u.id === reqId);
-    if (reqUser) {
-        reqUser.friends = reqUser.friends || [];
-        if (!reqUser.friends.includes(currentUser.id)) reqUser.friends.push(currentUser.id);
+async function acceptFriendRequest(reqId) {
+    if (!currentUser) return;
+    try {
+        await apiFetch('/friends.php?action=accept', {
+            method: 'POST',
+            body: { userId: currentUser.id, requesterId: reqId }
+        });
+        alert("Friend request accepted!");
+        await updateAndSync();
+    } catch (err) {
+        alert(err.message || "Failed to accept friend request.");
     }
-
-    alert("Friend request accepted!");
-    renderAll();
 }
 
 function renderNotificationsBadge() {
     const badge = document.getElementById('notifBadge');
     if (!badge || !currentUser) return;
-    const count = (window.db.notifications.filter(n => n.userId === currentUser.id).length) + (currentUser.friendRequests?.length || 0);
+    const count = ((window.db.notifications || []).filter(n => n.userId === currentUser.id).length) + (currentUser.friendRequests?.length || 0);
     badge.innerText = count;
 }
 
 // ADMIN: DASHBOARD & MANAGEMENT
 function renderAdminDashboard() {
-    document.getElementById('statTotalUsers').innerText = window.db.users.filter(u => u.role !== 'admin').length;
-    document.getElementById('statTotalTournaments').innerText = window.db.tournaments.length;
-    document.getElementById('statTotalFixtures').innerText = window.db.fixtures.length;
+    document.getElementById('statTotalUsers').innerText = (window.db.users || []).filter(u => u.role !== 'admin').length;
+    document.getElementById('statTotalTournaments').innerText = (window.db.tournaments || []).length;
+    document.getElementById('statTotalFixtures').innerText = (window.db.fixtures || []).length;
 
-    // Users roster table
     const tbody = document.getElementById('adminUsersTableBody');
     if (tbody) {
-        tbody.innerHTML = window.db.users.map((u, index) => `
+        tbody.innerHTML = (window.db.users || []).map((u, index) => `
             <tr>
                 <td>${index + 1}</td>
                 <td>${u.name}</td>
                 <td>${u.team}</td>
-                <td>${u.pass}</td>
+                <td>*****</td>
                 <td><span class="badge-tag" style="background:${u.online ? 'rgba(0,255,135,0.1)' : 'rgba(255,255,255,0.05)'}; color:${u.online ? 'var(--epl-mint)' : '#888'};">${u.online ? 'Online' : 'Offline'}</span></td>
                 <td><button class="btn" onclick="deleteUser(${u.id})" style="background:var(--epl-pink); color:#fff; padding:4px 8px; font-size:11px;">Delete</button></td>
             </tr>
@@ -767,7 +824,7 @@ function previewTournBgFile(e) {
     reader.readAsDataURL(file);
 }
 
-function handleCreateTournament(e) {
+async function handleCreateTournament(e) {
     e.preventDefault();
     if (!currentUser || currentUser.role !== 'admin') return;
 
@@ -777,20 +834,22 @@ function handleCreateTournament(e) {
 
     if (!name) return alert("Tournament name is required.");
 
-    window.db.tournaments.push({
-        id: Date.now(),
-        name,
-        rules: rules || "No rules specified.",
-        bgImage: bgImage || ""
-    });
+    try {
+        await apiFetch('/tournaments.php?action=create', {
+            method: 'POST',
+            body: { name, rules: rules || "No rules specified.", bgImage: bgImage || "" }
+        });
 
-    document.getElementById('adminTournName').value = '';
-    document.getElementById('adminTournRules').value = '';
-    document.getElementById('adminTournFile').value = '';
-    document.getElementById('adminTournBgBase64').value = '';
+        document.getElementById('adminTournName').value = '';
+        document.getElementById('adminTournRules').value = '';
+        document.getElementById('adminTournFile').value = '';
+        document.getElementById('adminTournBgBase64').value = '';
 
-    alert("Tournament created successfully!");
-    updateAndSync();
+        alert("Tournament created successfully!");
+        await updateAndSync();
+    } catch (err) {
+        alert(err.message || "Failed to create tournament.");
+    }
 }
 
 function renderAdminTournamentsList() {
@@ -807,17 +866,20 @@ function renderAdminTournamentsList() {
         <div style="background:rgba(0,0,0,0.4); padding:12px; border-radius:8px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
             <div>
                 <div style="font-weight:700;">${t.name}</div>
-                <div style="font-size:11px; color:var(--epl-text-sub);">${t.rules.substring(0, 50)}...</div>
+                <div style="font-size:11px; color:var(--epl-text-sub);">${(t.rules || '').substring(0, 50)}...</div>
             </div>
             <button class="btn" onclick="deleteTournament(${t.id})" style="background:var(--epl-pink); color:#fff; padding:6px 10px; font-size:11px;">Delete</button>
         </div>
     `).join('');
 }
 
-function deleteTournament(id) {
-    window.db.tournaments = window.db.tournaments.filter(t => t.id !== id);
-    window.db.fixtures = window.db.fixtures.filter(f => f.tournId !== id);
-    updateAndSync();
+async function deleteTournament(id) {
+    try {
+        await apiFetch(`/tournaments.php?action=delete&id=${id}`, { method: 'DELETE' });
+        await updateAndSync();
+    } catch (err) {
+        alert(err.message || "Failed to delete tournament.");
+    }
 }
 
 // ADMIN: FIXTURES MANAGEMENT
@@ -837,10 +899,10 @@ function renderAdminFixturesManagement() {
     const awaySelect = document.getElementById('fixAwayTeam');
 
     if (tournSelect) {
-        tournSelect.innerHTML = window.db.tournaments.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
+        tournSelect.innerHTML = (window.db.tournaments || []).map(t => `<option value="${t.id}">${t.name}</option>`).join('');
     }
 
-    const regularUsers = window.db.users.filter(u => u.role !== 'admin');
+    const regularUsers = (window.db.users || []).filter(u => u.role !== 'admin');
     if (homeSelect && awaySelect) {
         const optionsHtml = regularUsers.map(u => `<option value="${u.team}">${u.team} (${u.name})</option>`).join('');
         homeSelect.innerHTML = optionsHtml;
@@ -875,7 +937,7 @@ function renderAdminFixturesManagement() {
     `).join('');
 }
 
-function handleCreateFixture(e) {
+async function handleCreateFixture(e) {
     e.preventDefault();
     const tournId = parseInt(document.getElementById('fixTournSelect').value);
     const home = document.getElementById('fixHomeTeam').value;
@@ -888,24 +950,20 @@ function handleCreateFixture(e) {
         return alert("Home team and Away team cannot be the same.");
     }
 
-    window.db.fixtures.push({
-        id: Date.now(),
-        tournId,
-        home,
-        away,
-        date,
-        weekday,
-        time,
-        played: false,
-        homeScore: null,
-        awayScore: null
-    });
+    try {
+        await apiFetch('/fixtures.php?action=create', {
+            method: 'POST',
+            body: { tournId, home, away, date, weekday, time }
+        });
 
-    alert("Fixture scheduled successfully!");
-    updateAndSync();
+        alert("Fixture scheduled successfully!");
+        await updateAndSync();
+    } catch (err) {
+        alert(err.message || "Failed to create fixture.");
+    }
 }
 
-function submitMatchResult(fixId) {
+async function submitMatchResult(fixId) {
     const homeInput = document.getElementById(`homeScore_${fixId}`);
     const awayInput = document.getElementById(`awayScore_${fixId}`);
 
@@ -916,63 +974,61 @@ function submitMatchResult(fixId) {
         return alert("Please enter valid scores for both teams.");
     }
 
-    const fixture = window.db.fixtures.find(f => f.id === fixId);
-    if (fixture) {
-        fixture.played = true;
-        fixture.homeScore = homeScore;
-        fixture.awayScore = awayScore;
-
-        // Notify users
-        window.db.users.forEach(u => {
-            if (u.role !== 'admin') {
-                window.db.notifications.push({
-                    id: Date.now() + Math.random(),
-                    userId: u.id,
-                    text: `Match Result: ${fixture.home} ${homeScore} - ${awayScore} ${fixture.away}`
-                });
-            }
+    try {
+        await apiFetch('/fixtures.php?action=submit_score', {
+            method: 'POST',
+            body: { id: fixId, homeScore, awayScore }
         });
 
         alert("Match result updated successfully!");
-        updateAndSync();
+        await updateAndSync();
+    } catch (err) {
+        alert(err.message || "Failed to update match result.");
     }
 }
 
-function deleteFixture(id) {
-    window.db.fixtures = window.db.fixtures.filter(f => f.id !== id);
-    updateAndSync();
+async function deleteFixture(id) {
+    try {
+        await apiFetch(`/fixtures.php?action=delete&id=${id}`, { method: 'DELETE' });
+        await updateAndSync();
+    } catch (err) {
+        alert(err.message || "Failed to delete fixture.");
+    }
 }
 
-function handleSendAdminNotification(e) {
+async function handleSendAdminNotification(e) {
     e.preventDefault();
     const text = document.getElementById('adminNotifText').value.trim();
     if (!text) return;
 
-    window.db.users.forEach(u => {
-        if (u.role !== 'admin') {
-            window.db.notifications.push({
-                id: Date.now() + Math.random(),
-                userId: u.id,
-                text: `[Admin Broadcast]: ${text}`
-            });
-        }
-    });
+    try {
+        await apiFetch('/notifications.php?action=broadcast', {
+            method: 'POST',
+            body: { text }
+        });
 
-    document.getElementById('adminNotifText').value = '';
-    alert("Notification broadcasted to all users successfully!");
-    updateAndSync();
+        document.getElementById('adminNotifText').value = '';
+        alert("Notification broadcasted to all users successfully!");
+        await updateAndSync();
+    } catch (err) {
+        alert(err.message || "Failed to send notification.");
+    }
 }
 
-function deleteUser(id) {
-    window.db.users = window.db.users.filter(u => u.id !== id);
-    updateAndSync();
+async function deleteUser(id) {
+    try {
+        await apiFetch(`/users.php?action=delete&id=${id}`, { method: 'DELETE' });
+        await updateAndSync();
+    } catch (err) {
+        alert(err.message || "Failed to delete user.");
+    }
 }
 
 function renderAdminModeration() {
     const tbody = document.getElementById('adminModerationTableBody');
     if (!tbody) return;
 
-    const users = window.db.users.filter(u => u.role !== 'admin');
+    const users = (window.db.users || []).filter(u => u.role !== 'admin');
     tbody.innerHTML = users.map(u => `
         <tr>
             <td>${u.name}</td>
