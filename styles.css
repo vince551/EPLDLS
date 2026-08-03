@@ -1591,3 +1591,34 @@ input:focus, select:focus, textarea:focus {
     pointer-events: none;
 }
 
+
+/* ====================================================
+   LOGOUT BUTTON — PROFILE CARD
+   ==================================================== */
+.profile-logout-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    width: 100%;
+    margin-top: 14px;
+    padding: 10px 16px;
+    border-radius: 30px;
+    border: 1px solid rgba(233, 0, 82, 0.4);
+    background: rgba(233, 0, 82, 0.08);
+    color: #ff4d6d;
+    font-size: 12px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.profile-logout-btn:hover,
+.profile-logout-btn:active {
+    background: rgba(233, 0, 82, 0.22);
+    border-color: rgba(233, 0, 82, 0.7);
+    box-shadow: 0 0 14px rgba(233, 0, 82, 0.25);
+    transform: scale(1.01);
+}

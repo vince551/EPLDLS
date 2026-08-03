@@ -294,13 +294,17 @@ function renderMobileNavigation() {
                 <span class="text-base">📅</span>
                 <span>Fixtures</span>
             </button>
-            <button class="mobile-nav-item" onclick="showPage('userKits')">
-                <span class="text-base">👕</span>
-                <span>Kits</span>
+            <button class="mobile-nav-item" onclick="showPage('userFriends')">
+                <span class="text-base">💬</span>
+                <span>Friends</span>
             </button>
             <button class="mobile-nav-item" onclick="showPage('userProfile')">
                 <span class="text-base">👤</span>
                 <span>Profile</span>
+            </button>
+            <button class="mobile-nav-item" onclick="confirmLogout()">
+                <span class="text-base" style="color:#ff4d6d;">🚪</span>
+                <span style="color:#ff4d6d;">Logout</span>
             </button>
         `;
     }
@@ -401,16 +405,48 @@ async function handleForgotPassword(e) {
     }
 }
 
+function confirmLogout() {
+    // Show inline confirm toast instead of browser confirm()
+    const toastEl = document.createElement('div');
+    toastEl.id = 'logoutConfirmToast';
+    toastEl.style.cssText = `
+        position:fixed; bottom:100px; left:50%; transform:translateX(-50%);
+        background:rgba(15,5,29,0.98); border:1px solid rgba(233,0,82,0.5);
+        border-radius:16px; padding:16px 20px; z-index:9999;
+        box-shadow:0 8px 32px rgba(0,0,0,0.6); min-width:260px; text-align:center;
+        backdrop-filter:blur(20px);
+    `;
+    toastEl.innerHTML = `
+        <div style="font-size:24px;margin-bottom:8px;">🚪</div>
+        <div style="font-size:13px;font-weight:800;color:#fff;margin-bottom:4px;">Log out?</div>
+        <div style="font-size:11px;color:#aaa;margin-bottom:14px;">You'll need to sign in again to access your account.</div>
+        <div style="display:flex;gap:8px;justify-content:center;">
+            <button onclick="document.getElementById('logoutConfirmToast').remove()" style="flex:1;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.05);color:#aaa;font-size:12px;font-weight:700;cursor:pointer;">Cancel</button>
+            <button onclick="logout()" style="flex:1;padding:8px;border-radius:8px;border:none;background:linear-gradient(135deg,#e90052,#c4003d);color:#fff;font-size:12px;font-weight:800;cursor:pointer;">Yes, Logout</button>
+        </div>
+    `;
+    // Remove any existing confirm toast
+    document.getElementById('logoutConfirmToast')?.remove();
+    document.body.appendChild(toastEl);
+    // Auto-dismiss after 8 seconds
+    setTimeout(() => toastEl?.remove(), 8000);
+}
+
 function logout() {
+    document.getElementById('logoutConfirmToast')?.remove();
     currentUser = null;
     localStorage.removeItem('epldls_user');
-    document.getElementById('userNav').style.display = 'none';
-    document.getElementById('adminNav').style.display = 'none';
+    sessionStorage.clear();
+    const userNav = document.getElementById('userNav');
+    const adminNav = document.getElementById('adminNav');
     const mobileNav = document.getElementById('mobileNav');
+    if (userNav) userNav.style.display = 'none';
+    if (adminNav) adminNav.style.display = 'none';
     if (mobileNav) mobileNav.style.display = 'none';
-    showToast('Logged out successfully.', 'info');
+    showToast('🚪 Logged out successfully. See you soon!', 'info');
     showPage('authPage');
 }
+
 
 function renderNavigation() {
     const userNav = document.getElementById('userNav');
