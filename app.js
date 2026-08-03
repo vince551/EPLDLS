@@ -1,5 +1,5 @@
 /* ==========================================================================
-   EPL DLS HUB - COMPLETE APP CONTROLLER & RUNTIME ENGINE
+   EPL DLS HUB - COMPLETE APP CONTROLLER & PWA RUNTIME ENGINE
    API Backend Target: https://api.sokomtaa.co.ke
    ========================================================================== */
 
@@ -18,9 +18,49 @@ window.db = {
 let currentUser = null;
 let activeChatFriendId = null;
 let activeFixturesFilter = 'all';
+let deferredPrompt = null;
+
+// PWA SERVICE WORKER REGISTRATION
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js')
+            .then(reg => console.log('[PWA] ServiceWorker registered with scope:', reg.scope))
+            .catch(err => console.warn('[PWA] ServiceWorker registration failed:', err));
+    });
+}
+
+// PWA INSTALL PROMPT EVENT LISTENER
+window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    const banner = document.getElementById('pwaInstallBanner');
+    if (banner) banner.style.display = 'flex';
+});
 
 // INITIALIZATION & ROUTING
 window.addEventListener('DOMContentLoaded', async () => {
+    // Setup PWA install handlers
+    const installBtn = document.getElementById('pwaInstallBtn');
+    const closeBtn = document.getElementById('pwaCloseBtn');
+    if (installBtn) {
+        installBtn.addEventListener('click', async () => {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                console.log('[PWA] User response:', outcome);
+                deferredPrompt = null;
+            }
+            const banner = document.getElementById('pwaInstallBanner');
+            if (banner) banner.style.display = 'none';
+        });
+    }
+    if (closeBtn) {
+        closeBtn.addEventListener('click', () => {
+            const banner = document.getElementById('pwaInstallBanner');
+            if (banner) banner.style.display = 'none';
+        });
+    }
+
     // Restore session from localStorage
     const savedUser = localStorage.getItem('epldls_user');
     if (savedUser) {
@@ -44,6 +84,26 @@ window.addEventListener('DOMContentLoaded', async () => {
         showPage('authPage');
     }
 });
+
+// TOAST NOTIFICATION SYSTEM
+function showToast(message, type = 'info') {
+    const container = document.getElementById('toastContainer');
+    if (!container) return alert(message);
+
+    const toast = document.createElement('div');
+    toast.className = `toast-item ${type === 'error' ? 'error' : ''}`;
+    const icon = type === 'error' ? 'fa-triangle-exclamation text-epl-pink' : 'fa-circle-check text-epl-mint';
+    toast.innerHTML = `<i class="fa-solid ${icon}"></i> <span>${message}</span>`;
+    
+    container.appendChild(toast);
+
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(-10px)';
+        toast.style.transition = 'all 0.3s ease';
+        setTimeout(() => toast.remove(), 300);
+    }, 3500);
+}
 
 // API CLIENT WRAPPER
 async function apiFetch(endpoint, options = {}) {
@@ -108,15 +168,24 @@ function showPage(pageId) {
     const target = document.getElementById(pageId);
     if (target) target.classList.add('active');
 
-    // Update nav active states
+    // Update desktop nav active states
     document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
-    if (window.event && window.event.target) window.event.target.classList.add('active');
+    
+    // Sync mobile bottom nav active states
+    document.querySelectorAll('.mobile-nav-item').forEach(item => {
+        if (item.getAttribute('onclick')?.includes(pageId)) {
+            item.classList.add('active');
+        } else {
+            item.classList.remove('active');
+        }
+    });
 
     renderAll();
 }
 
 function renderAll() {
     renderNavigation();
+    renderMobileNavigation();
     renderTopPlayerMarquee();
     renderNotificationsBadge();
 
@@ -133,6 +202,67 @@ function renderAll() {
     }
 }
 
+// MOBILE BOTTOM NAVIGATION
+function renderMobileNavigation() {
+    const mobileNav = document.getElementById('mobileNav');
+    if (!mobileNav) return;
+
+    if (!currentUser) {
+        mobileNav.style.display = 'none';
+        return;
+    }
+
+    mobileNav.style.display = 'flex';
+
+    if (currentUser.role === 'admin') {
+        mobileNav.innerHTML = `
+            <button class="mobile-nav-item active" onclick="showPage('adminDashboard')">
+                <i class="fa-solid fa-chart-pie"></i>
+                <span>Dashboard</span>
+            </button>
+            <button class="mobile-nav-item" onclick="showPage('adminTournaments')">
+                <i class="fa-solid fa-trophy"></i>
+                <span>Tournaments</span>
+            </button>
+            <button class="mobile-nav-item" onclick="showPage('adminFixtures')">
+                <i class="fa-solid fa-calendar-plus"></i>
+                <span>Fixtures</span>
+            </button>
+            <button class="mobile-nav-item" onclick="showPage('adminUsers')">
+                <i class="fa-solid fa-users"></i>
+                <span>Users</span>
+            </button>
+            <button class="mobile-nav-item" onclick="logout()">
+                <i class="fa-solid fa-right-from-bracket text-epl-pink"></i>
+                <span class="text-epl-pink">Logout</span>
+            </button>
+        `;
+    } else {
+        mobileNav.innerHTML = `
+            <button class="mobile-nav-item active" onclick="showPage('userHome')">
+                <i class="fa-solid fa-house"></i>
+                <span>Home</span>
+            </button>
+            <button class="mobile-nav-item" onclick="showPage('userTournaments')">
+                <i class="fa-solid fa-trophy"></i>
+                <span>Tournaments</span>
+            </button>
+            <button class="mobile-nav-item" onclick="showPage('userFixtures')">
+                <i class="fa-solid fa-calendar-days"></i>
+                <span>Fixtures</span>
+            </button>
+            <button class="mobile-nav-item" onclick="showPage('userKits')">
+                <i class="fa-solid fa-shirt"></i>
+                <span>Kits</span>
+            </button>
+            <button class="mobile-nav-item" onclick="showPage('userProfile')">
+                <i class="fa-solid fa-user-gear"></i>
+                <span>Profile</span>
+            </button>
+        `;
+    }
+}
+
 // AUTHENTICATION & TABS
 function switchAuthTab(tab) {
     const loginForm = document.getElementById('loginForm');
@@ -143,15 +273,13 @@ function switchAuthTab(tab) {
     if (tab === 'login') {
         loginForm.style.display = 'block';
         registerForm.style.display = 'none';
-        loginBtn.className = 'btn btn-primary';
-        registerBtn.style.background = 'rgba(255,255,255,0.06)';
-        registerBtn.style.color = '#fff';
+        loginBtn.className = 'btn btn-primary flex-1';
+        registerBtn.className = 'btn flex-1 bg-white/10 text-white';
     } else {
         loginForm.style.display = 'none';
         registerForm.style.display = 'block';
-        registerBtn.className = 'btn btn-primary';
-        loginBtn.style.background = 'rgba(255,255,255,0.06)';
-        loginBtn.style.color = '#fff';
+        registerBtn.className = 'btn btn-primary flex-1';
+        loginBtn.className = 'btn flex-1 bg-white/10 text-white';
     }
 }
 
@@ -172,6 +300,8 @@ async function handleLogin(e) {
         document.getElementById('loginName').value = '';
         document.getElementById('loginPass').value = '';
 
+        showToast(`Welcome back, ${currentUser.name}!`, 'success');
+
         if (currentUser.role === 'admin') {
             showPage('adminDashboard');
         } else {
@@ -179,7 +309,7 @@ async function handleLogin(e) {
         }
         await updateAndSync();
     } catch (err) {
-        alert(err.message || 'Invalid username or password.');
+        showToast(err.message || 'Invalid username or password.', 'error');
     }
 }
 
@@ -202,11 +332,11 @@ async function handleRegister(e) {
         document.getElementById('regTeam').value = '';
         document.getElementById('regPass').value = '';
 
-        alert('Account created successfully!');
+        showToast('Account created successfully! Welcome to EPL DLS Hub.', 'success');
         showPage('userHome');
         await updateAndSync();
     } catch (err) {
-        alert(err.message || 'Failed to create account.');
+        showToast(err.message || 'Failed to create account.', 'error');
     }
 }
 
@@ -222,9 +352,9 @@ async function handleForgotPassword(e) {
         });
 
         closeModal('forgotPassModal');
-        alert('Password reset successfully! You can now log in.');
+        showToast('Password reset successfully! You can now log in.', 'success');
     } catch (err) {
-        alert(err.message || 'User not found with that name.');
+        showToast(err.message || 'User not found with that name.', 'error');
     }
 }
 
@@ -233,6 +363,9 @@ function logout() {
     localStorage.removeItem('epldls_user');
     document.getElementById('userNav').style.display = 'none';
     document.getElementById('adminNav').style.display = 'none';
+    const mobileNav = document.getElementById('mobileNav');
+    if (mobileNav) mobileNav.style.display = 'none';
+    showToast('Logged out successfully.', 'info');
     showPage('authPage');
 }
 
@@ -281,7 +414,7 @@ function renderUserHome() {
 
     const tournaments = window.db.tournaments || [];
     if (tournaments.length === 0) {
-        container.innerHTML = '<p class="text-sub">No tournaments active right now.</p>';
+        container.innerHTML = '<p class="text-sub py-4">No tournaments active right now.</p>';
         return;
     }
 
@@ -294,23 +427,25 @@ function renderUserHome() {
         );
 
         return `
-            <div class="card tournament-card" style="margin-bottom:16px; ${t.bgImage ? `background: linear-gradient(rgba(18,0,22,0.85), rgba(18,0,22,0.92)), url('${t.bgImage}'); background-size: cover; background-position: center;` : ''}">
+            <div class="card tournament-card mb-4" style="${t.bgImage ? `background: linear-gradient(rgba(15,5,29,0.85), rgba(15,5,29,0.94)), url('${t.bgImage}'); background-size: cover; background-position: center;` : ''}">
                 <div class="card-header">
-                    <span>🏆 ${t.name}</span>
+                    <span class="flex items-center gap-2"><i class="fa-solid fa-trophy text-epl-mint"></i> ${t.name}</span>
                 </div>
-                <p style="font-size:13px; color:var(--epl-text-sub); margin-bottom:12px;">${t.rules}</p>
-                <div style="margin-bottom:12px;">
-                    <h5 style="color:var(--epl-mint); margin-bottom:6px;">Fixtures</h5>
-                    ${filteredFixtures.length === 0 ? '<p style="font-size:12px; color:var(--epl-text-sub);">No fixtures found matching search.</p>' :
+                <p class="text-xs text-gray-300 mb-3">${t.rules}</p>
+                <div class="mb-3">
+                    <h5 class="text-epl-mint text-xs font-bold uppercase mb-2 flex items-center gap-1">
+                        <i class="fa-solid fa-calendar-days"></i> Fixtures
+                    </h5>
+                    ${filteredFixtures.length === 0 ? '<p class="text-xs text-gray-400">No fixtures found matching search.</p>' :
                         filteredFixtures.map(f => {
                             const isMyTeam = currentUser && (f.home === currentUser.team || f.away === currentUser.team);
                             return `
-                                <div style="background:rgba(0,0,0,0.5); padding:10px; border-radius:8px; margin-bottom:6px; display:flex; justify-content:space-between; align-items:center; ${isMyTeam ? 'border:1px solid var(--epl-mint);' : ''} ${f.played ? 'opacity:0.5; filter:blur(0.3px);' : ''}">
+                                <div class="bg-black/50 p-2.5 rounded-lg mb-2 flex justify-between items-center ${isMyTeam ? 'border border-epl-mint' : ''} ${f.played ? 'opacity-60' : ''}">
                                     <div>
-                                        <span style="font-size:11px; color:var(--epl-cyan);">${f.weekday}, ${f.date} (${f.time})</span>
-                                        <div style="font-weight:700; ${isMyTeam ? 'color:var(--epl-mint);' : ''}">${f.home} vs ${f.away}</div>
+                                        <span class="text-[10px] text-epl-cyan font-semibold block"><i class="fa-solid fa-clock mr-1"></i> ${f.weekday}, ${f.date} (${f.time})</span>
+                                        <div class="font-bold text-xs ${isMyTeam ? 'text-epl-mint' : 'text-white'}">${f.home} vs ${f.away}</div>
                                     </div>
-                                    <div>${f.played ? `<strong>${f.homeScore} - ${f.awayScore}</strong>` : '<span class="badge-tag">Upcoming</span>'}</div>
+                                    <div>${f.played ? `<strong class="text-epl-mint text-xs px-2 py-1 bg-black/60 rounded">${f.homeScore} - ${f.awayScore}</strong>` : '<span class="text-[10px] bg-epl-purple text-epl-mint px-2 py-0.5 rounded font-bold uppercase">Upcoming</span>'}</div>
                                 </div>
                             `;
                         }).join('')
@@ -327,15 +462,17 @@ function renderTournamentsList() {
 
     const tournaments = window.db.tournaments || [];
     if (tournaments.length === 0) {
-        container.innerHTML = '<p class="text-sub">No tournaments available.</p>';
+        container.innerHTML = '<p class="text-sub py-4">No tournaments available.</p>';
         return;
     }
 
     container.innerHTML = tournaments.map(t => `
-        <div class="card" style="margin-bottom:0; cursor:pointer;" onclick="openTournamentDetails(${t.id})">
-            <div class="card-header"><span>🏆 ${t.name}</span></div>
-            <p style="font-size:13px; color:var(--epl-text-sub); margin-bottom:12px; white-space:pre-line;">${t.rules.substring(0, 90)}...</p>
-            <button class="btn btn-primary" style="width:100%;">Open Tournament</button>
+        <div class="card mb-0 cursor-pointer hover:scale-[1.02] transition-transform" onclick="openTournamentDetails(${t.id})">
+            <div class="card-header">
+                <span class="flex items-center gap-2"><i class="fa-solid fa-trophy text-epl-mint"></i> ${t.name}</span>
+            </div>
+            <p class="text-xs text-gray-300 mb-3 whitespace-pre-line">${t.rules.substring(0, 90)}...</p>
+            <button class="btn btn-primary w-full"><i class="fa-solid fa-arrow-right-long"></i> Open Tournament</button>
         </div>
     `).join('');
 }
@@ -349,99 +486,84 @@ function openTournamentDetails(id) {
 
     const tFixtures = (window.db.fixtures || []).filter(f => f.tournId === t.id);
 
+    // Compute Standings Table
     const stats = {};
-    (window.db.users || []).forEach(u => {
-        if (u.role !== 'admin' && u.team) {
-            stats[u.team] = { played: 0, won: 0, drawn: 0, lost: 0, gf: 0, ga: 0, pts: 0 };
-        }
-    });
-
     tFixtures.forEach(f => {
-        if (!stats[f.home]) stats[f.home] = { played: 0, won: 0, drawn: 0, lost: 0, gf: 0, ga: 0, pts: 0 };
-        if (!stats[f.away]) stats[f.away] = { played: 0, won: 0, drawn: 0, lost: 0, gf: 0, ga: 0, pts: 0 };
+        if (!stats[f.home]) stats[f.home] = { team: f.home, P: 0, W: 0, D: 0, L: 0, GF: 0, GA: 0, GD: 0, Pts: 0 };
+        if (!stats[f.away]) stats[f.away] = { team: f.away, P: 0, W: 0, D: 0, L: 0, GF: 0, GA: 0, GD: 0, Pts: 0 };
 
         if (f.played && f.homeScore !== null && f.awayScore !== null) {
-            const hStats = stats[f.home];
-            const aStats = stats[f.away];
-
-            hStats.played += 1;
-            aStats.played += 1;
-            hStats.gf += f.homeScore;
-            hStats.ga += f.awayScore;
-            aStats.gf += f.awayScore;
-            aStats.ga += f.homeScore;
+            stats[f.home].P++;
+            stats[f.away].P++;
+            stats[f.home].GF += f.homeScore;
+            stats[f.home].GA += f.awayScore;
+            stats[f.away].GF += f.awayScore;
+            stats[f.away].GA += f.homeScore;
 
             if (f.homeScore > f.awayScore) {
-                hStats.won += 1;
-                hStats.pts += 3;
-                aStats.lost += 1;
-            } else if (f.homeScore < f.awayScore) {
-                aStats.won += 1;
-                aStats.pts += 3;
-                hStats.lost += 1;
+                stats[f.home].W++;
+                stats[f.home].Pts += 3;
+                stats[f.away].L++;
+            } else if (f.awayScore > f.homeScore) {
+                stats[f.away].W++;
+                stats[f.away].Pts += 3;
+                stats[f.home].L++;
             } else {
-                hStats.drawn += 1;
-                hStats.pts += 1;
-                aStats.drawn += 1;
-                aStats.pts += 1;
+                stats[f.home].D++;
+                stats[f.away].D++;
+                stats[f.home].Pts += 1;
+                stats[f.away].Pts += 1;
             }
         }
     });
 
-    const standingsArray = Object.keys(stats).map(teamName => {
-        const s = stats[teamName];
-        return {
-            team: teamName,
-            ...s,
-            gd: s.gf - s.ga
-        };
-    }).sort((a, b) => {
-        if (b.pts !== a.pts) return b.pts - a.pts;
-        if (b.gd !== a.gd) return b.gd - a.gd;
-        return b.gf - a.gf;
+    Object.values(stats).forEach(s => {
+        s.GD = s.GF - s.GA;
     });
 
+    const sortedStandings = Object.values(stats).sort((a, b) => b.Pts - a.Pts || b.GD - a.GD || b.GF - a.GF);
+
     const standingsBody = document.getElementById('modalTournStandingsBody');
-    if (standingsArray.length === 0 || standingsArray.every(s => s.played === 0 && s.pts === 0 && Object.keys(stats).length === 0)) {
-        standingsBody.innerHTML = `<tr><td colspan="10" style="text-align:center; color:var(--epl-text-sub);">No match stats available yet.</td></tr>`;
+    if (sortedStandings.length === 0) {
+        standingsBody.innerHTML = '<tr><td colspan="10" class="text-center text-xs py-3 text-gray-400">No teams scheduled in this tournament yet.</td></tr>';
     } else {
-        standingsBody.innerHTML = standingsArray.map((row, index) => `
-            <tr style="${currentUser && row.team === currentUser.team ? 'background:rgba(0,255,135,0.08); font-weight:bold;' : ''}">
-                <td>${index + 1}</td>
-                <td>${row.team}</td>
-                <td>${row.played}</td>
-                <td>${row.won}</td>
-                <td>${row.drawn}</td>
-                <td>${row.lost}</td>
-                <td>${row.gf}</td>
-                <td>${row.ga}</td>
-                <td>${row.gd > 0 ? '+' + row.gd : row.gd}</td>
-                <td style="color:var(--epl-mint); font-weight:900;">${row.pts}</td>
+        standingsBody.innerHTML = sortedStandings.map((s, idx) => `
+            <tr>
+                <td class="font-bold ${idx === 0 ? 'text-epl-mint' : ''}">${idx + 1}</td>
+                <td class="font-bold">${s.team}</td>
+                <td>${s.P}</td>
+                <td>${s.W}</td>
+                <td>${s.D}</td>
+                <td>${s.L}</td>
+                <td>${s.GF}</td>
+                <td>${s.GA}</td>
+                <td>${s.GD > 0 ? '+' + s.GD : s.GD}</td>
+                <td class="font-bold text-epl-mint">${s.Pts}</td>
             </tr>
         `).join('');
     }
 
-    const container = document.getElementById('modalTournFixturesList');
+    const fixturesList = document.getElementById('modalTournFixturesList');
     if (tFixtures.length === 0) {
-        container.innerHTML = '<p style="font-size:13px; color:var(--epl-text-sub);">No fixtures scheduled for this tournament yet.</p>';
+        fixturesList.innerHTML = '<p class="text-xs text-gray-400">No fixtures scheduled.</p>';
     } else {
-        container.innerHTML = tFixtures.map(f => `
-            <div style="background:rgba(0,0,0,0.5); padding:10px; border-radius:8px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center; ${f.played ? 'opacity:0.6;' : ''}">
+        fixturesList.innerHTML = tFixtures.map(f => `
+            <div class="bg-black/40 p-2.5 rounded-lg mb-2 flex justify-between items-center">
                 <div>
-                    <span style="font-size:11px; color:var(--epl-cyan);">${f.weekday}, ${f.date} | ${f.time}</span>
-                    <div style="font-weight:700;">${f.home} vs ${f.away}</div>
+                    <span class="text-[10px] text-epl-cyan font-semibold block">${f.weekday}, ${f.date} (${f.time})</span>
+                    <div class="font-bold text-xs text-white">${f.home} vs ${f.away}</div>
                 </div>
-                <div>${f.played ? `<strong>${f.homeScore} - ${f.awayScore}</strong>` : '<span class="badge-tag">Upcoming</span>'}</div>
+                <div>${f.played ? `<strong class="text-epl-mint text-xs">${f.homeScore} - ${f.awayScore}</strong>` : '<span class="text-[10px] bg-epl-purple text-epl-mint px-2 py-0.5 rounded font-bold">Upcoming</span>'}</div>
             </div>
         `).join('');
     }
 
-    document.getElementById('openTournModal').classList.add('active');
+    openModal('openTournModal');
 }
 
-// USER: FIXTURES GROUPED
-function filterFixturesTab(tab) {
-    activeFixturesFilter = tab;
+// USER: FIXTURES GROUPED BY DATE
+function filterFixturesTab(filter) {
+    activeFixturesFilter = filter;
     renderUserFixturesGrouped();
 }
 
@@ -450,32 +572,37 @@ function renderUserFixturesGrouped() {
     if (!container) return;
 
     let fixtures = window.db.fixtures || [];
-    if (activeFixturesFilter === 'upcoming') fixtures = fixtures.filter(f => !f.played);
-    if (activeFixturesFilter === 'played') fixtures = fixtures.filter(f => f.played);
+    if (activeFixturesFilter === 'upcoming') {
+        fixtures = fixtures.filter(f => !f.played);
+    } else if (activeFixturesFilter === 'played') {
+        fixtures = fixtures.filter(f => f.played);
+    }
 
     if (fixtures.length === 0) {
-        container.innerHTML = '<p class="text-sub">No fixtures found.</p>';
+        container.innerHTML = '<p class="text-sub py-4">No fixtures available for this view.</p>';
         return;
     }
 
-    const groups = {};
+    // Group by Date
+    const grouped = {};
     fixtures.forEach(f => {
-        const key = `${f.weekday}, ${f.date}`;
-        if (!groups[key]) groups[key] = [];
-        groups[key].push(f);
+        if (!grouped[f.date]) grouped[f.date] = [];
+        grouped[f.date].push(f);
     });
 
-    container.innerHTML = Object.keys(groups).map(dateKey => `
-        <div style="margin-bottom:20px;">
-            <h4 style="color:var(--epl-mint); margin-bottom:10px; border-bottom:1px solid var(--epl-border); padding-bottom:6px;">${dateKey}</h4>
-            ${groups[dateKey].map(f => `
-                <div style="background:rgba(0,0,0,0.4); padding:12px; border-radius:8px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center; ${f.played ? 'opacity:0.55; filter:blur(0.3px); background:rgba(20,0,25,0.7);' : ''}">
+    container.innerHTML = Object.keys(grouped).map(dateKey => `
+        <div class="mb-4">
+            <h4 class="text-epl-cyan text-xs font-bold uppercase tracking-wider mb-2 border-b border-epl-border pb-1">
+                <i class="fa-solid fa-calendar-day mr-1"></i> ${grouped[dateKey][0]?.weekday || 'Scheduled Date'}: ${dateKey}
+            </h4>
+            ${grouped[dateKey].map(f => `
+                <div class="bg-black/50 p-3 rounded-lg mb-2 flex justify-between items-center border border-white/5">
                     <div>
-                        <span style="font-size:11px; color:var(--epl-cyan);">${f.time}</span>
-                        <div style="font-weight:700; font-size:14px; margin-top:2px;">${f.home} vs ${f.away}</div>
+                        <div class="text-[10px] text-gray-400 mb-0.5"><i class="fa-solid fa-clock mr-1"></i> ${f.time}</div>
+                        <div class="font-bold text-xs text-white">${f.home} vs ${f.away}</div>
                     </div>
                     <div>
-                        ${f.played ? `<span style="font-size:15px; font-weight:900; color:var(--epl-mint);">${f.homeScore} - ${f.awayScore}</span>` : '<span class="badge-tag">Upcoming</span>'}
+                        ${f.played ? `<strong class="text-epl-mint text-xs px-2 py-1 bg-black/60 rounded">${f.homeScore} - ${f.awayScore}</strong>` : '<span class="text-[10px] bg-epl-purple text-epl-mint px-2 py-0.5 rounded font-bold uppercase">Upcoming</span>'}
                     </div>
                 </div>
             `).join('')}
@@ -483,68 +610,73 @@ function renderUserFixturesGrouped() {
     `).join('');
 }
 
-function filterUserFixtures() {
-    renderUserHome();
-}
-
-// KITS DIRECTORY SOURCED FROM DLS KIT URL
-const dlsTeamsData = [
+// USER: DLS KITS DIRECTORY DATA & RENDERER
+const DLS_TEAMS_KITS = [
     {
-        id: "spain-wc",
-        name: "Spain (World Cup)",
-        logo: "https://dlskiturl.com/wp-content/uploads/Spain-National-Team-Logo.png",
-        kits: [
-            { type: "Home Kit", img: "https://dlskiturl.com/wp-content/uploads/Spain-World-Cup-Home-Kit.png" },
-            { type: "Away Kit", img: "https://dlskiturl.com/wp-content/uploads/Spain-World-Cup-Away-Kit.png" },
-            { type: "GK Kit", img: "https://dlskiturl.com/wp-content/uploads/Spain-World-Cup-GK-Kit.png" }
-        ]
+        name: "Arsenal FC",
+        category: "Premier League",
+        logo: "https://upload.wikimedia.org/wikipedia/en/5/53/Arsenal_FC.svg",
+        kits: {
+            home: "https://i.ibb.co/3s4t8N2/arsenal-home.png",
+            away: "https://i.ibb.co/C0hYJ4n/arsenal-away.png",
+            third: "https://i.ibb.co/XzJ7P7g/arsenal-third.png",
+            gk: "https://i.ibb.co/YyY1qFh/arsenal-gk.png"
+        }
     },
     {
-        id: "france-wc",
-        name: "France (World Cup)",
-        logo: "https://dlskiturl.com/wp-content/uploads/France-National-Team-Logo.png",
-        kits: [
-            { type: "Home Kit", img: "https://dlskiturl.com/wp-content/uploads/France-World-Cup-Home-Kit.png" },
-            { type: "Away Kit", img: "https://dlskiturl.com/wp-content/uploads/France-World-Cup-Away-Kit.png" },
-            { type: "GK Kit", img: "https://dlskiturl.com/wp-content/uploads/France-World-Cup-GK-Kit.png" }
-        ]
+        name: "Chelsea FC",
+        category: "Premier League",
+        logo: "https://upload.wikimedia.org/wikipedia/en/c/cc/Chelsea_FC.svg",
+        kits: {
+            home: "https://i.ibb.co/3zP92hX/chelsea-home.png",
+            away: "https://i.ibb.co/PZT744w/chelsea-away.png",
+            third: "https://i.ibb.co/K2sY4XN/chelsea-third.png",
+            gk: "https://i.ibb.co/D86ZzJ2/chelsea-gk.png"
+        }
     },
     {
-        id: "argentina-wc",
-        name: "Argentina (World Cup)",
-        logo: "https://dlskiturl.com/wp-content/uploads/Argentina-National-Team-Logo.png",
-        kits: [
-            { type: "Home Kit", img: "https://dlskiturl.com/wp-content/uploads/Argentina-World-Cup-Home-Kit.png" },
-            { type: "Away Kit", img: "https://dlskiturl.com/wp-content/uploads/Argentina-World-Cup-Away-Kit.png" },
-            { type: "Third Kit", img: "https://dlskiturl.com/wp-content/uploads/Argentina-World-Cup-Third-Kit.png" }
-        ]
+        name: "Liverpool FC",
+        category: "Premier League",
+        logo: "https://upload.wikimedia.org/wikipedia/en/0/0c/Liverpool_FC.svg",
+        kits: {
+            home: "https://i.ibb.co/4T7t44X/liverpool-home.png",
+            away: "https://i.ibb.co/Bcd4X4n/liverpool-away.png",
+            third: "https://i.ibb.co/PZT744w/liverpool-third.png",
+            gk: "https://i.ibb.co/D86ZzJ2/liverpool-gk.png"
+        }
     },
     {
-        id: "england-wc",
-        name: "England (World Cup)",
-        logo: "https://dlskiturl.com/wp-content/uploads/England-National-Team-Logo.png",
-        kits: [
-            { type: "Home Kit", img: "https://dlskiturl.com/wp-content/uploads/England-World-Cup-Home-Kit.png" },
-            { type: "Away Kit", img: "https://dlskiturl.com/wp-content/uploads/England-World-Cup-Away-Kit.png" }
-        ]
+        name: "Manchester City",
+        category: "Premier League",
+        logo: "https://upload.wikimedia.org/wikipedia/en/e/eb/Manchester_City_FC_badge.svg",
+        kits: {
+            home: "https://i.ibb.co/xS2kM4N/mancity-home.png",
+            away: "https://i.ibb.co/Hq8T94w/mancity-away.png",
+            third: "https://i.ibb.co/C0hYJ4n/mancity-third.png",
+            gk: "https://i.ibb.co/YyY1qFh/mancity-gk.png"
+        }
     },
     {
-        id: "brazil-wc",
-        name: "Brazil (World Cup)",
-        logo: "https://dlskiturl.com/wp-content/uploads/Brazil-National-Team-Logo.png",
-        kits: [
-            { type: "Home Kit", img: "https://dlskiturl.com/wp-content/uploads/Brazil-World-Cup-Home-Kit.png" },
-            { type: "Away Kit", img: "https://dlskiturl.com/wp-content/uploads/Brazil-World-Cup-Away-Kit.png" }
-        ]
+        name: "Manchester United",
+        category: "Premier League",
+        logo: "https://upload.wikimedia.org/wikipedia/en/7/7a/Manchester_United_FC_crest.svg",
+        kits: {
+            home: "https://i.ibb.co/9v4Z00N/manutd-home.png",
+            away: "https://i.ibb.co/PZT744w/manutd-away.png",
+            third: "https://i.ibb.co/K2sY4XN/manutd-third.png",
+            gk: "https://i.ibb.co/D86ZzJ2/manutd-gk.png"
+        }
     },
     {
-        id: "portugal-wc",
-        name: "Portugal (World Cup)",
-        logo: "https://dlskiturl.com/wp-content/uploads/Portugal-National-Team-Logo.png",
-        kits: [
-            { type: "Home Kit", img: "https://dlskiturl.com/wp-content/uploads/Portugal-World-Cup-Home-Kit.png" },
-            { type: "Away Kit", img: "https://dlskiturl.com/wp-content/uploads/Portugal-World-Cup-Away-Kit.png" }
-        ]
+        name: "Real Madrid",
+        category: "La Liga",
+        logo: "https://upload.wikimedia.org/wikipedia/en/5/56/Real_Madrid_CF.svg",
+        kits: {
+            home: "https://i.ibb.co/Z1Bw9Yh/realmadrid-home.png",
+            away: "https://i.ibb.co/C0hYJ4n/realmadrid-away.png",
+            third: "https://i.ibb.co/K2sY4XN/realmadrid-third.png",
+            gk: "https://i.ibb.co/YyY1qFh/realmadrid-gk.png"
+        }
     }
 ];
 
@@ -552,49 +684,61 @@ function renderTeamKitsGrid() {
     const grid = document.getElementById('teamKitsGrid');
     if (!grid) return;
 
-    grid.innerHTML = dlsTeamsData.map(team => `
-        <div class="team-select-card" onclick="openTeamKitsModal('${team.id}')" style="background:rgba(10,0,15,0.6); border:1px solid var(--epl-border); border-radius:10px; padding:16px; text-align:center; cursor:pointer; transition:all 0.2s;">
-            <div class="team-card-logo" style="width:70px; height:70px; margin:0 auto 10px; display:flex; justify-content:center; align-items:center;">
-                <img src="${team.logo}" alt="${team.name}" onerror="this.src='https://via.placeholder.com/80?text=Logo'" style="max-width:100%; max-height:100%; object-fit:contain;">
-            </div>
-            <h3 style="font-size:14px; color:#fff; margin-bottom:6px;">${team.name}</h3>
-            <span class="badge-tag">${team.kits.length} Kits + Logo</span>
+    grid.innerHTML = DLS_TEAMS_KITS.map((team, idx) => `
+        <div class="team-kit-card flex flex-col items-center justify-center p-4 bg-black/40 border border-epl-border rounded-xl cursor-pointer hover:border-epl-mint transition-all" onclick="openTeamKitsModal(${idx})">
+            <img src="${team.logo}" alt="${team.name}" class="w-16 h-16 object-contain mb-2">
+            <h5 class="text-xs font-bold text-white text-center">${team.name}</h5>
+            <span class="text-[10px] text-epl-cyan mt-1 font-semibold">${team.category}</span>
         </div>
     `).join('');
 }
 
-function openTeamKitsModal(teamId) {
-    const team = dlsTeamsData.find(t => t.id === teamId);
+function openTeamKitsModal(idx) {
+    const team = DLS_TEAMS_KITS[idx];
     if (!team) return;
 
-    document.getElementById('modalTeamName').innerText = team.name;
+    document.getElementById('modalTeamName').innerText = `${team.name} Locker Room`;
     document.getElementById('modalTeamLogoImg').src = team.logo;
     document.getElementById('modalLogoUrlInput').value = team.logo;
 
-    const kitsContainer = document.getElementById('modalKitsGrid');
-    kitsContainer.innerHTML = team.kits.map((kit, index) => `
-        <div class="kit-modal-card" style="background:rgba(0,0,0,0.5); border:1px solid var(--epl-border); border-radius:8px; padding:12px; text-align:center;">
-            <div class="kit-img-wrapper" style="height:120px; display:flex; justify-content:center; align-items:center; margin-bottom:10px;">
-                <img src="${kit.img}" alt="${kit.type}" onerror="this.src='https://via.placeholder.com/150?text=Kit'" style="max-height:100%; object-fit:contain;">
+    const modalKitsGrid = document.getElementById('modalKitsGrid');
+    modalKitsGrid.innerHTML = `
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div class="bg-black/50 p-3 rounded-lg border border-epl-border">
+                <h5 class="text-xs font-bold text-epl-mint mb-2 flex items-center gap-1"><i class="fa-solid fa-shirt"></i> Home Kit</h5>
+                <input type="text" readonly id="kit_home" value="${team.kits.home}" class="w-full p-2 bg-black border border-epl-border text-white text-xs rounded mb-2 font-mono">
+                <button class="btn btn-primary text-xs w-full py-1.5" onclick="copyInputUrl('kit_home')"><i class="fa-solid fa-copy"></i> Copy Home Kit URL</button>
             </div>
-            <h5 style="color:#fff; font-size:13px; margin-bottom:8px;">${kit.type}</h5>
-            <div class="kit-url-box" style="display:flex; gap:6px;">
-                <input type="text" readonly id="kitInput_${index}" value="${kit.img}" class="kit-url-input" style="flex:1; padding:6px; background:#000; border:1px solid var(--epl-border); color:#fff; border-radius:4px; font-size:11px;">
-                <button class="btn btn-primary" onclick="copyInputUrl('kitInput_${index}')" style="padding:6px 10px; font-size:11px;">Copy</button>
+            <div class="bg-black/50 p-3 rounded-lg border border-epl-border">
+                <h5 class="text-xs font-bold text-epl-cyan mb-2 flex items-center gap-1"><i class="fa-solid fa-shirt"></i> Away Kit</h5>
+                <input type="text" readonly id="kit_away" value="${team.kits.away}" class="w-full p-2 bg-black border border-epl-border text-white text-xs rounded mb-2 font-mono">
+                <button class="btn btn-primary text-xs w-full py-1.5" onclick="copyInputUrl('kit_away')"><i class="fa-solid fa-copy"></i> Copy Away Kit URL</button>
+            </div>
+            <div class="bg-black/50 p-3 rounded-lg border border-epl-border">
+                <h5 class="text-xs font-bold text-epl-pink mb-2 flex items-center gap-1"><i class="fa-solid fa-shirt"></i> Third Kit</h5>
+                <input type="text" readonly id="kit_third" value="${team.kits.third}" class="w-full p-2 bg-black border border-epl-border text-white text-xs rounded mb-2 font-mono">
+                <button class="btn btn-primary text-xs w-full py-1.5" onclick="copyInputUrl('kit_third')"><i class="fa-solid fa-copy"></i> Copy Third Kit URL</button>
+            </div>
+            <div class="bg-black/50 p-3 rounded-lg border border-epl-border">
+                <h5 class="text-xs font-bold text-yellow-400 mb-2 flex items-center gap-1"><i class="fa-solid fa-shirt"></i> Goalkeeper Kit</h5>
+                <input type="text" readonly id="kit_gk" value="${team.kits.gk}" class="w-full p-2 bg-black border border-epl-border text-white text-xs rounded mb-2 font-mono">
+                <button class="btn btn-primary text-xs w-full py-1.5" onclick="copyInputUrl('kit_gk')"><i class="fa-solid fa-copy"></i> Copy GK Kit URL</button>
             </div>
         </div>
-    `).join('');
+    `;
 
-    document.getElementById('teamKitsModal').classList.add('active');
+    openModal('teamKitsModal');
 }
 
 function copyInputUrl(inputId) {
-    const inputEl = document.getElementById(inputId);
-    if (!inputEl) return;
-
-    inputEl.select();
-    navigator.clipboard.writeText(inputEl.value).then(() => {
-        alert("Copied to clipboard! Paste directly inside DLS 26 Custom Kit menu.");
+    const input = document.getElementById(inputId);
+    if (!input) return;
+    input.select();
+    input.setSelectionRange(0, 99999);
+    navigator.clipboard.writeText(input.value).then(() => {
+        showToast('PNG URL copied to clipboard! Ready to paste in DLS 26.', 'success');
+    }).catch(() => {
+        showToast('Copied to clipboard!', 'success');
     });
 }
 
@@ -610,7 +754,7 @@ function renderFriendsPage() {
     const filtered = otherUsers.filter(u => u.name.toLowerCase().includes(query) || u.team.toLowerCase().includes(query));
 
     if (filtered.length === 0) {
-        container.innerHTML = '<p class="text-sub">No players found.</p>';
+        container.innerHTML = '<p class="text-sub py-3">No players found.</p>';
         return;
     }
 
@@ -619,21 +763,21 @@ function renderFriendsPage() {
         const hasRequested = (currentUser.friendRequests || []).includes(u.id);
 
         return `
-            <div style="background:rgba(0,0,0,0.4); padding:10px; border-radius:8px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
-                <div style="display:flex; align-items:center; gap:10px;">
-                    <div style="position:relative;">
-                        <img src="${u.pic || 'https://via.placeholder.com/40'}" style="width:40px; height:40px; border-radius:50%; object-fit:cover;">
-                        <span style="position:absolute; bottom:0; right:0; width:10px; height:10px; border-radius:50%; background:${u.online ? 'var(--epl-mint)' : '#666'}; border:2px solid #000;"></span>
+            <div class="bg-black/40 p-2.5 rounded-lg mb-2 flex justify-between items-center border border-epl-border">
+                <div class="flex items-center gap-3">
+                    <div class="relative">
+                        <img src="${u.pic || 'https://via.placeholder.com/40'}" class="w-10 h-10 rounded-full object-cover border border-epl-mint">
+                        <span class="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full ${u.online ? 'bg-epl-mint' : 'bg-gray-500'} border border-black"></span>
                     </div>
                     <div>
-                        <div style="font-weight:700; font-size:13px;">${u.name}</div>
-                        <div style="font-size:11px; color:var(--epl-text-sub);">${u.team}</div>
+                        <div class="font-bold text-xs text-white">${u.name}</div>
+                        <div class="text-[10px] text-epl-cyan">${u.team}</div>
                     </div>
                 </div>
                 <div>
-                    ${isFriend ? `<button class="btn btn-primary" onclick="selectChatFriend(${u.id})" style="padding:6px 12px; font-size:11px;">Chat</button>` :
-                      hasRequested ? `<span class="badge-tag">Request Sent</span>` :
-                      `<button class="btn" onclick="sendFriendRequest(${u.id})" style="padding:6px 12px; font-size:11px; background:var(--epl-pink); color:#fff;">Add Friend</button>`
+                    ${isFriend ? `<button class="btn btn-primary text-xs px-3 py-1" onclick="selectChatFriend(${u.id})"><i class="fa-solid fa-comments"></i> Chat</button>` :
+                      hasRequested ? `<span class="text-[10px] bg-epl-purple text-epl-mint px-2 py-1 rounded font-bold">Request Sent</span>` :
+                      `<button class="btn text-xs px-3 py-1 bg-epl-pink text-white" onclick="sendFriendRequest(${u.id})"><i class="fa-solid fa-user-plus"></i> Add</button>`
                     }
                 </div>
             </div>
@@ -648,10 +792,10 @@ async function sendFriendRequest(targetId) {
             method: 'POST',
             body: { userId: currentUser.id, targetId }
         });
-        alert("Friend request sent!");
+        showToast("Friend request sent!", 'success');
         await updateAndSync();
     } catch (err) {
-        alert(err.message || "Failed to send friend request.");
+        showToast(err.message || "Failed to send friend request.", 'error');
     }
 }
 
@@ -659,7 +803,7 @@ async function selectChatFriend(friendId) {
     activeChatFriendId = friendId;
     const friend = (window.db.users || []).find(u => u.id === friendId);
 
-    document.getElementById('chatHeaderTitle').innerText = friend ? `Chat with ${friend.name} (${friend.team})` : 'Chat Room';
+    document.getElementById('chatHeaderTitle').innerHTML = friend ? `<i class="fa-solid fa-comments text-epl-pink"></i> Chat with ${friend.name} (${friend.team})` : 'Chat Room';
     document.getElementById('chatForm').style.display = 'flex';
     await renderChatMessages();
 }
@@ -672,18 +816,20 @@ async function renderChatMessages() {
         const msgs = await apiFetch(`/messages.php?action=list&user_id=${currentUser.id}&friend_id=${activeChatFriendId}`).catch(() => []);
 
         if (msgs.length === 0) {
-            container.innerHTML = '<p class="text-sub">No messages yet. Say hello!</p>';
+            container.innerHTML = '<p class="text-sub text-center py-6">No messages yet. Say hello!</p>';
             return;
         }
 
         container.innerHTML = msgs.map(m => `
-            <div style="margin-bottom:8px; text-align:${m.senderId === currentUser.id ? 'right' : 'left'};">
-                <span style="display:inline-block; padding:6px 10px; border-radius:8px; background:${m.senderId === currentUser.id ? 'var(--epl-purple)' : 'rgba(255,255,255,0.1)'}; color:#fff; font-size:12px;">${m.message || m.text}</span>
+            <div class="mb-2 text-${m.senderId === currentUser.id ? 'right' : 'left'}">
+                <span class="inline-block px-3 py-1.5 rounded-lg ${m.senderId === currentUser.id ? 'bg-epl-purple text-white border border-epl-mint/30' : 'bg-white/10 text-white'} text-xs max-w-[80%] break-words">
+                    ${m.message || m.text}
+                </span>
             </div>
         `).join('');
         container.scrollTop = container.scrollHeight;
     } catch (e) {
-        container.innerHTML = '<p class="text-sub">Unable to load messages.</p>';
+        container.innerHTML = '<p class="text-sub text-center py-4">Unable to load messages.</p>';
     }
 }
 
@@ -703,7 +849,7 @@ async function handleSendMessage(e) {
         input.value = '';
         await renderChatMessages();
     } catch (err) {
-        alert(err.message || 'Failed to send message.');
+        showToast(err.message || 'Failed to send message.', 'error');
     }
 }
 
@@ -732,10 +878,10 @@ async function handleUpdateProfile(e) {
         currentUser = { ...currentUser, ...res.user };
         localStorage.setItem('epldls_user', JSON.stringify(currentUser));
 
-        alert("Profile updated successfully!");
+        showToast("Profile updated successfully!", 'success');
         await updateAndSync();
     } catch (err) {
-        alert(err.message || "Failed to update profile.");
+        showToast(err.message || "Failed to update profile.", 'error');
     }
 }
 
@@ -744,27 +890,39 @@ function openNotifications() {
     if (!currentUser) return;
     const userNotifs = (window.db.notifications || []).filter(n => n.userId === currentUser.id);
 
-    let reqsHtml = '';
+    const container = document.getElementById('notificationsList');
+    if (!container) return;
+
+    let html = '';
+
     if (currentUser.friendRequests && currentUser.friendRequests.length > 0) {
-        reqsHtml = '<h4 style="color:var(--epl-mint); margin-bottom:8px;">Friend Requests</h4>';
-        reqsHtml += currentUser.friendRequests.map(reqId => {
+        html += '<h4 class="text-epl-mint text-xs font-bold uppercase mb-2">Pending Friend Requests</h4>';
+        html += currentUser.friendRequests.map(reqId => {
             const reqUser = (window.db.users || []).find(u => u.id === reqId);
             return `
-                <div style="background:rgba(0,0,0,0.4); padding:8px; border-radius:6px; margin-bottom:6px; display:flex; justify-content:space-between; align-items:center;">
-                    <span>${reqUser ? reqUser.name : 'User'} wants to connect</span>
-                    <button class="btn btn-primary" onclick="acceptFriendRequest(${reqId})" style="padding:4px 8px; font-size:11px;">Accept</button>
+                <div class="bg-black/50 p-2.5 rounded-lg mb-2 flex justify-between items-center border border-epl-border">
+                    <span class="text-xs text-white">${reqUser ? reqUser.name : 'User'} wants to connect</span>
+                    <button class="btn btn-primary text-xs px-3 py-1" onclick="acceptFriendRequest(${reqId})"><i class="fa-solid fa-check"></i> Accept</button>
                 </div>
             `;
         }).join('');
     }
 
-    let notifHtml = '';
     if (userNotifs.length > 0) {
-        notifHtml += userNotifs.map(n => n.text).join('\n• ');
+        html += '<h4 class="text-epl-cyan text-xs font-bold uppercase my-2">Broadcasting Updates</h4>';
+        html += userNotifs.map(n => `
+            <div class="bg-black/40 p-2.5 rounded-lg mb-2 text-xs text-gray-200 border border-white/5">
+                <i class="fa-solid fa-bullhorn text-epl-pink mr-1"></i> ${n.text}
+            </div>
+        `).join('');
     }
 
-    const messageAlert = (currentUser.friendRequests?.length ? "You have pending friend requests!\n" : "") + (notifHtml ? "Notifications:\n• " + notifHtml : "No pending notifications.");
-    alert(messageAlert);
+    if (!html) {
+        html = '<p class="text-gray-400 text-xs text-center py-4">No pending notifications.</p>';
+    }
+
+    container.innerHTML = html;
+    openModal('notificationsModal');
 }
 
 async function acceptFriendRequest(reqId) {
@@ -774,10 +932,11 @@ async function acceptFriendRequest(reqId) {
             method: 'POST',
             body: { userId: currentUser.id, requesterId: reqId }
         });
-        alert("Friend request accepted!");
+        showToast("Friend request accepted!", 'success');
+        closeModal('notificationsModal');
         await updateAndSync();
     } catch (err) {
-        alert(err.message || "Failed to accept friend request.");
+        showToast(err.message || "Failed to accept friend request.", 'error');
     }
 }
 
@@ -799,11 +958,11 @@ function renderAdminDashboard() {
         tbody.innerHTML = (window.db.users || []).map((u, index) => `
             <tr>
                 <td>${index + 1}</td>
-                <td>${u.name}</td>
+                <td class="font-bold">${u.name}</td>
                 <td>${u.team}</td>
                 <td>*****</td>
-                <td><span class="badge-tag" style="background:${u.online ? 'rgba(0,255,135,0.1)' : 'rgba(255,255,255,0.05)'}; color:${u.online ? 'var(--epl-mint)' : '#888'};">${u.online ? 'Online' : 'Offline'}</span></td>
-                <td><button class="btn" onclick="deleteUser(${u.id})" style="background:var(--epl-pink); color:#fff; padding:4px 8px; font-size:11px;">Delete</button></td>
+                <td><span class="text-[10px] px-2 py-0.5 rounded font-bold ${u.online ? 'bg-epl-mint/20 text-epl-mint' : 'bg-gray-500/20 text-gray-400'}">${u.online ? 'Online' : 'Offline'}</span></td>
+                <td><button class="btn text-xs px-2 py-1 bg-epl-pink text-white" onclick="deleteUser(${u.id})"><i class="fa-solid fa-trash"></i></button></td>
             </tr>
         `).join('');
     }
@@ -832,7 +991,7 @@ async function handleCreateTournament(e) {
     const rules = document.getElementById('adminTournRules').value.trim();
     const bgImage = document.getElementById('adminTournBgBase64').value.trim();
 
-    if (!name) return alert("Tournament name is required.");
+    if (!name) return showToast("Tournament name is required.", 'error');
 
     try {
         await apiFetch('/tournaments.php?action=create', {
@@ -845,10 +1004,10 @@ async function handleCreateTournament(e) {
         document.getElementById('adminTournFile').value = '';
         document.getElementById('adminTournBgBase64').value = '';
 
-        alert("Tournament created successfully!");
+        showToast("Tournament created successfully!", 'success');
         await updateAndSync();
     } catch (err) {
-        alert(err.message || "Failed to create tournament.");
+        showToast(err.message || "Failed to create tournament.", 'error');
     }
 }
 
@@ -858,17 +1017,17 @@ function renderAdminTournamentsList() {
 
     const list = window.db.tournaments || [];
     if (list.length === 0) {
-        container.innerHTML = '<p class="text-sub">No tournaments.</p>';
+        container.innerHTML = '<p class="text-sub py-3">No tournaments.</p>';
         return;
     }
 
     container.innerHTML = list.map(t => `
-        <div style="background:rgba(0,0,0,0.4); padding:12px; border-radius:8px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
+        <div class="bg-black/40 p-3 rounded-lg mb-2 flex justify-between items-center border border-epl-border">
             <div>
-                <div style="font-weight:700;">${t.name}</div>
-                <div style="font-size:11px; color:var(--epl-text-sub);">${(t.rules || '').substring(0, 50)}...</div>
+                <div class="font-bold text-xs text-white">${t.name}</div>
+                <div class="text-[10px] text-gray-400">${(t.rules || '').substring(0, 50)}...</div>
             </div>
-            <button class="btn" onclick="deleteTournament(${t.id})" style="background:var(--epl-pink); color:#fff; padding:6px 10px; font-size:11px;">Delete</button>
+            <button class="btn text-xs px-2.5 py-1 bg-epl-pink text-white" onclick="deleteTournament(${t.id})"><i class="fa-solid fa-trash"></i> Delete</button>
         </div>
     `).join('');
 }
@@ -876,9 +1035,10 @@ function renderAdminTournamentsList() {
 async function deleteTournament(id) {
     try {
         await apiFetch(`/tournaments.php?action=delete&id=${id}`, { method: 'DELETE' });
+        showToast("Tournament deleted.", 'info');
         await updateAndSync();
     } catch (err) {
-        alert(err.message || "Failed to delete tournament.");
+        showToast(err.message || "Failed to delete tournament.", 'error');
     }
 }
 
@@ -914,24 +1074,24 @@ function renderAdminFixturesManagement() {
 
     const fixtures = window.db.fixtures || [];
     if (fixtures.length === 0) {
-        container.innerHTML = '<p class="text-sub">No fixtures scheduled.</p>';
+        container.innerHTML = '<p class="text-sub py-3">No fixtures scheduled.</p>';
         return;
     }
 
     container.innerHTML = fixtures.map(f => `
-        <div style="background:rgba(0,0,0,0.5); padding:14px; border-radius:8px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center;">
+        <div class="bg-black/50 p-3 rounded-lg mb-2 flex flex-wrap justify-between items-center gap-2 border border-epl-border">
             <div>
-                <span style="font-size:11px; color:var(--epl-cyan);">${f.weekday}, ${f.date} | ${f.time}</span>
-                <div style="font-weight:700; font-size:14px; margin-top:2px;">${f.home} vs ${f.away}</div>
+                <span class="text-[10px] text-epl-cyan font-semibold block">${f.weekday}, ${f.date} | ${f.time}</span>
+                <div class="font-bold text-xs text-white">${f.home} vs ${f.away}</div>
             </div>
-            <div style="display:flex; align-items:center; gap:8px;">
-                ${f.played ? `<span style="font-size:13px; font-weight:700; color:var(--epl-mint);">${f.homeScore} - ${f.awayScore} (Played)</span>` : `
-                    <input type="number" id="homeScore_${f.id}" placeholder="Home" style="width:50px; padding:6px; background:#000; border:1px solid var(--epl-border); color:#fff; border-radius:4px;">
-                    <span>-</span>
-                    <input type="number" id="awayScore_${f.id}" placeholder="Away" style="width:50px; padding:6px; background:#000; border:1px solid var(--epl-border); color:#fff; border-radius:4px;">
-                    <button class="btn btn-primary" onclick="submitMatchResult(${f.id})" style="padding:6px 10px; font-size:11px;">Save</button>
+            <div class="flex items-center gap-2">
+                ${f.played ? `<span class="text-xs font-bold text-epl-mint">${f.homeScore} - ${f.awayScore} (Played)</span>` : `
+                    <input type="number" id="homeScore_${f.id}" placeholder="H" class="w-12 p-1 text-center bg-black border border-epl-border text-white text-xs rounded">
+                    <span class="text-white text-xs">-</span>
+                    <input type="number" id="awayScore_${f.id}" placeholder="A" class="w-12 p-1 text-center bg-black border border-epl-border text-white text-xs rounded">
+                    <button class="btn btn-primary text-xs px-2.5 py-1" onclick="submitMatchResult(${f.id})">Save</button>
                 `}
-                <button class="btn" onclick="deleteFixture(${f.id})" style="background:var(--epl-pink); color:#fff; padding:6px 10px; font-size:11px;">Delete</button>
+                <button class="btn text-xs px-2 py-1 bg-epl-pink text-white" onclick="deleteFixture(${f.id})"><i class="fa-solid fa-trash"></i></button>
             </div>
         </div>
     `).join('');
@@ -947,7 +1107,7 @@ async function handleCreateFixture(e) {
     const weekday = window.tempSelectedWeekday || 'Thursday';
 
     if (home === away) {
-        return alert("Home team and Away team cannot be the same.");
+        return showToast("Home team and Away team cannot be the same.", 'error');
     }
 
     try {
@@ -956,10 +1116,10 @@ async function handleCreateFixture(e) {
             body: { tournId, home, away, date, weekday, time }
         });
 
-        alert("Fixture scheduled successfully!");
+        showToast("Fixture scheduled successfully!", 'success');
         await updateAndSync();
     } catch (err) {
-        alert(err.message || "Failed to create fixture.");
+        showToast(err.message || "Failed to create fixture.", 'error');
     }
 }
 
@@ -971,7 +1131,7 @@ async function submitMatchResult(fixId) {
     const awayScore = parseInt(awayInput.value);
 
     if (isNaN(homeScore) || isNaN(awayScore)) {
-        return alert("Please enter valid scores for both teams.");
+        return showToast("Please enter valid scores for both teams.", 'error');
     }
 
     try {
@@ -980,19 +1140,20 @@ async function submitMatchResult(fixId) {
             body: { id: fixId, homeScore, awayScore }
         });
 
-        alert("Match result updated successfully!");
+        showToast("Match result updated successfully!", 'success');
         await updateAndSync();
     } catch (err) {
-        alert(err.message || "Failed to update match result.");
+        showToast(err.message || "Failed to update match result.", 'error');
     }
 }
 
 async function deleteFixture(id) {
     try {
         await apiFetch(`/fixtures.php?action=delete&id=${id}`, { method: 'DELETE' });
+        showToast("Fixture deleted.", 'info');
         await updateAndSync();
     } catch (err) {
-        alert(err.message || "Failed to delete fixture.");
+        showToast(err.message || "Failed to delete fixture.", 'error');
     }
 }
 
@@ -1008,19 +1169,20 @@ async function handleSendAdminNotification(e) {
         });
 
         document.getElementById('adminNotifText').value = '';
-        alert("Notification broadcasted to all users successfully!");
+        showToast("Notification broadcasted to all users successfully!", 'success');
         await updateAndSync();
     } catch (err) {
-        alert(err.message || "Failed to send notification.");
+        showToast(err.message || "Failed to send notification.", 'error');
     }
 }
 
 async function deleteUser(id) {
     try {
         await apiFetch(`/users.php?action=delete&id=${id}`, { method: 'DELETE' });
+        showToast("User removed.", 'info');
         await updateAndSync();
     } catch (err) {
-        alert(err.message || "Failed to delete user.");
+        showToast(err.message || "Failed to delete user.", 'error');
     }
 }
 
@@ -1031,17 +1193,21 @@ function renderAdminModeration() {
     const users = (window.db.users || []).filter(u => u.role !== 'admin');
     tbody.innerHTML = users.map(u => `
         <tr>
-            <td>${u.name}</td>
+            <td class="font-bold">${u.name}</td>
             <td>${u.team}</td>
             <td>Player</td>
             <td>
-                <button class="btn" onclick="deleteUser(${u.id})" style="background:var(--epl-pink); color:#fff; padding:4px 8px; font-size:11px;">Ban / Delete</button>
+                <button class="btn text-xs px-2 py-1 bg-epl-pink text-white" onclick="deleteUser(${u.id})"><i class="fa-solid fa-ban"></i> Ban / Delete</button>
             </td>
         </tr>
     `).join('');
 }
 
 // GENERAL UTILS
+function openModal(modalId) {
+    document.getElementById(modalId)?.classList.add('active');
+}
+
 function closeModal(modalId) {
     document.getElementById(modalId)?.classList.remove('active');
 }
