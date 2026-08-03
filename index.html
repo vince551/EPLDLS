@@ -200,15 +200,37 @@
 
         <!-- USER HOME (FEED & ACTIVE TOURNAMENTS) -->
         <section id="userHome" class="page">
+            <!-- User Welcome Hero Banner -->
+            <div id="userWelcomeHero" class="mb-4"></div>
+
+            <!-- Quick Action Shortcut Pills Carousel -->
+            <div class="flex gap-2 overflow-x-auto pb-2 mb-4 scrollbar-none">
+                <button onclick="showPage('userTournaments')" class="btn bg-epl-purple/90 hover:bg-epl-purple text-epl-mint border border-epl-mint/40 text-xs px-3.5 py-2 whitespace-nowrap rounded-full shadow-sm">
+                    🏆 Tournaments
+                </button>
+                <button onclick="showPage('userFixtures')" class="btn bg-epl-purple/90 hover:bg-epl-purple text-epl-cyan border border-epl-cyan/40 text-xs px-3.5 py-2 whitespace-nowrap rounded-full shadow-sm">
+                    📅 Match Fixtures
+                </button>
+                <button onclick="showPage('userKits')" class="btn bg-epl-purple/90 hover:bg-epl-purple text-white border border-white/20 text-xs px-3.5 py-2 whitespace-nowrap rounded-full shadow-sm">
+                    👕 DLS Kits
+                </button>
+                <button onclick="showPage('userFriends')" class="btn bg-epl-purple/90 hover:bg-epl-purple text-epl-pink border border-epl-pink/40 text-xs px-3.5 py-2 whitespace-nowrap rounded-full shadow-sm">
+                    💬 Friends & Chat
+                </button>
+                <button onclick="showPage('userProfile')" class="btn bg-epl-purple/90 hover:bg-epl-purple text-white border border-white/20 text-xs px-3.5 py-2 whitespace-nowrap rounded-full shadow-sm">
+                    👤 My Profile
+                </button>
+            </div>
+
             <div class="card">
                 <div class="card-header">
-                    <span class="flex items-center gap-2">📡 Active Tournaments Overview</span>
-                    <span class="text-xs text-epl-mint font-semibold uppercase">Live Hub Feed</span>
+                    <span class="flex items-center gap-2">📡 Active Tournaments Feed</span>
+                    <span class="text-xs text-epl-mint font-semibold uppercase">Live Overview</span>
                 </div>
-                <div class="form-group mb-6">
+                <div class="form-group mb-4">
                     <div class="relative">
-                        <input type="text" id="userTeamSearch" placeholder="Search for your team name to locate fixtures..." oninput="filterUserFixtures()" class="pl-10">
-                        <svg class="w-4 h-4 text-gray-400 absolute left-3.5 top-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                        <input type="text" id="userTeamSearch" placeholder="Search team name to locate matches..." oninput="filterUserFixtures()" class="pl-10 text-xs p-2.5">
+                        <svg class="w-4 h-4 text-gray-400 absolute left-3.5 top-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
                     </div>
                 </div>
                 <div id="userTournamentsFeed"></div>
@@ -233,10 +255,11 @@
                     <span class="flex items-center gap-2">📅 Match Fixtures & Results</span>
                     <span class="text-xs text-epl-mint font-semibold">Grouped by Date</span>
                 </div>
-                <div class="flex gap-2 mb-6 overflow-x-auto pb-2">
+                <div class="flex gap-2 mb-4 overflow-x-auto pb-2">
                     <button class="btn btn-primary text-xs py-2 px-4" onclick="filterFixturesTab('all')">📋 All Matches</button>
                     <button class="btn bg-white/10 text-white text-xs py-2 px-4" onclick="filterFixturesTab('upcoming')">⏰ Upcoming</button>
                     <button class="btn bg-white/10 text-white text-xs py-2 px-4" onclick="filterFixturesTab('played')">✅ Completed</button>
+                    <button class="btn bg-epl-purple/80 text-epl-mint border border-epl-mint/40 text-xs py-2 px-4" onclick="filterFixturesTab('my_team')">⭐ My Matches</button>
                 </div>
                 <div id="userFixturesGroupedList"></div>
             </div>
@@ -278,13 +301,13 @@
 
         <!-- FRIENDS & CHAT HUB -->
         <section id="userFriends" class="page">
-            <div class="dashboard-grid">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div class="card mb-0">
                     <div class="card-header">
                         <span class="flex items-center gap-2">👥 Friends List</span>
                     </div>
-                    <div class="form-group mb-4">
-                        <input type="text" id="friendSearchInput" placeholder="Search registered user..." oninput="renderFriendsPage()">
+                    <div class="form-group mb-3">
+                        <input type="text" id="friendSearchInput" placeholder="Search registered user..." oninput="renderFriendsPage()" class="text-xs p-2.5">
                     </div>
                     <div id="friendsListContainer"></div>
                 </div>
@@ -296,8 +319,8 @@
                         <p class="text-gray-400 text-center py-8">Select an accepted friend from your list to start chatting.</p>
                     </div>
                     <form id="chatForm" onsubmit="handleSendMessage(event)" class="flex gap-2" style="display:none;">
-                        <input type="text" id="chatMessageInput" required placeholder="Type message..." class="flex-1">
-                        <button class="btn btn-primary px-4" type="submit">🚀 Send</button>
+                        <input type="text" id="chatMessageInput" required placeholder="Type message..." class="flex-1 text-xs p-2">
+                        <button class="btn btn-primary px-4 py-2 text-xs" type="submit">🚀 Send</button>
                     </form>
                 </div>
             </div>
@@ -312,29 +335,29 @@
                 <form onsubmit="handleUpdateProfile(event)">
                     <div class="text-center mb-6">
                         <div class="relative inline-block">
-                            <img id="profilePreviewImg" src="https://via.placeholder.com/100?text=Avatar" alt="Profile" class="w-24 h-24 rounded-full object-cover border-2 border-epl-mint shadow-lg shadow-epl-mint/20 mx-auto mb-2">
-                            <span class="absolute bottom-2 right-0 bg-epl-purple border border-epl-mint text-epl-mint rounded-full w-7 h-7 flex items-center justify-center text-xs">
+                            <img id="profilePreviewImg" src="https://via.placeholder.com/100?text=Avatar" alt="Profile" class="w-20 h-20 rounded-full object-cover border-2 border-epl-mint shadow-lg shadow-epl-mint/20 mx-auto mb-2">
+                            <span class="absolute bottom-1 right-0 bg-epl-purple border border-epl-mint text-epl-mint rounded-full w-6 h-6 flex items-center justify-center text-xs">
                                 📷
                             </span>
                         </div>
                     </div>
                     <div class="form-group">
                         <label for="profilePicUrl">🖼️ Profile Picture URL</label>
-                        <input type="text" id="profilePicUrl" placeholder="Paste image URL here">
+                        <input type="text" id="profilePicUrl" placeholder="Paste image URL here" class="text-xs p-2.5">
                     </div>
                     <div class="form-group">
                         <label for="profileFullName">👤 Full Name</label>
-                        <input type="text" id="profileFullName" required>
+                        <input type="text" id="profileFullName" required class="text-xs p-2.5">
                     </div>
                     <div class="form-group">
                         <label for="profileTeamName">👕 DLS Team Name</label>
-                        <input type="text" id="profileTeamName" required>
+                        <input type="text" id="profileTeamName" required class="text-xs p-2.5">
                     </div>
                     <div class="form-group">
                         <label for="profilePassword">🔑 New Password (optional)</label>
-                        <input type="password" id="profilePassword" placeholder="Leave blank to keep current password">
+                        <input type="password" id="profilePassword" placeholder="Leave blank to keep current password" class="text-xs p-2.5">
                     </div>
-                    <button class="btn btn-primary w-full py-3" type="submit">
+                    <button class="btn btn-primary w-full py-2.5 text-xs" type="submit">
                         💾 Save Changes
                     </button>
                 </form>

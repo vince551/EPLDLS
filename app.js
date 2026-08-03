@@ -194,12 +194,54 @@ function renderAll() {
     if (currentUser.role === 'admin') {
         renderAdminDashboard();
     } else {
+        renderUserWelcomeHero();
         renderUserHome();
         renderTournamentsList();
         renderUserFixturesGrouped();
         renderFriendsPage();
         renderProfilePage();
     }
+}
+
+// USER WELCOME HERO BANNER
+function renderUserWelcomeHero() {
+    const hero = document.getElementById('userWelcomeHero');
+    if (!hero || !currentUser) return;
+
+    const hour = new Date().getHours();
+    const greeting = hour < 12 ? 'Good Morning' : hour < 17 ? 'Good Afternoon' : 'Good Evening';
+
+    const notifCount = ((window.db.notifications || []).filter(n => n.userId === currentUser.id).length) +
+                       (currentUser.friendRequests?.length || 0);
+
+    const myFixtures = (window.db.fixtures || []).filter(f =>
+        !f.played && (f.home === currentUser.team || f.away === currentUser.team)
+    ).length;
+
+    const avatarHtml = currentUser.pic
+        ? `<img src="${currentUser.pic}" class="user-hero-avatar" alt="Avatar" onerror="this.outerHTML='<div class=\'user-hero-avatar-placeholder\'>⚽</div>'">`
+        : `<div class="user-hero-avatar-placeholder">⚽</div>`;
+
+    hero.innerHTML = `
+        <div class="user-hero">
+            ${avatarHtml}
+            <div class="user-hero-info">
+                <div class="user-hero-greeting">${greeting}, Player 👋</div>
+                <div class="user-hero-name">${currentUser.name}</div>
+                <div class="user-hero-team">👕 ${currentUser.team}</div>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:6px;flex-shrink:0;">
+                <button class="user-hero-notif" onclick="openNotifications()" title="Notifications">
+                    🔔
+                    ${notifCount > 0 ? `<span class="badge" style="top:-4px;right:-4px;">${notifCount}</span>` : ''}
+                </button>
+                <div style="text-align:center;">
+                    <div style="font-size:9px;color:var(--epl-text-sub);font-weight:800;text-transform:uppercase;">My Fixtures</div>
+                    <div style="font-size:15px;font-weight:900;color:var(--epl-cyan);">${myFixtures}</div>
+                </div>
+            </div>
+        </div>
+    `;
 }
 
 // MOBILE BOTTOM NAVIGATION (GUARANTEED UNIVERSAL ICONS)
@@ -414,7 +456,12 @@ function renderUserHome() {
 
     const tournaments = window.db.tournaments || [];
     if (tournaments.length === 0) {
-        container.innerHTML = '<p class="text-sub py-4">No tournaments active right now.</p>';
+        container.innerHTML = `
+            <div style="text-align:center;padding:32px 0;">
+                <div style="font-size:40px;margin-bottom:10px;">🏆</div>
+                <div style="font-size:13px;color:var(--epl-text-sub);font-weight:700;">No active tournaments yet</div>
+                <div style="font-size:11px;color:#555;margin-top:4px;">Check back soon for upcoming fixtures!</div>
+            </div>`;
         return;
     }
 
@@ -425,32 +472,46 @@ function renderUserHome() {
         const filteredFixtures = tFixtures.filter(f =>
             !searchQuery || f.home.toLowerCase().includes(searchQuery) || f.away.toLowerCase().includes(searchQuery)
         );
+        const playedCount = tFixtures.filter(f => f.played).length;
 
         return `
-            <div class="card tournament-card mb-4" style="${t.bgImage ? `background: linear-gradient(rgba(15,5,29,0.85), rgba(15,5,29,0.94)), url('${t.bgImage}'); background-size: cover; background-position: center;` : ''}">
+            <div class="card tournament-card mb-4" style="${t.bgImage ? `background: linear-gradient(rgba(15,5,29,0.88), rgba(15,5,29,0.96)), url('${t.bgImage}'); background-size: cover; background-position: center;` : ''}">
                 <div class="card-header">
-                    <span class="flex items-center gap-2">🏆 ${t.name}</span>
+                    <span style="display:flex;align-items:center;gap:8px;">🏆 ${t.name}</span>
+                    <span style="font-size:10px;background:rgba(0,255,135,0.1);border:1px solid rgba(0,255,135,0.25);color:var(--epl-mint);padding:2px 8px;border-radius:20px;font-weight:800;">${playedCount}/${tFixtures.length} Played</span>
                 </div>
-                <p class="text-xs text-gray-300 mb-3">${t.rules}</p>
-                <div class="mb-3">
-                    <h5 class="text-epl-mint text-xs font-bold uppercase mb-2 flex items-center gap-1">
-                        📅 Fixtures
-                    </h5>
-                    ${filteredFixtures.length === 0 ? '<p class="text-xs text-gray-400">No fixtures found matching search.</p>' :
-                        filteredFixtures.map(f => {
-                            const isMyTeam = currentUser && (f.home === currentUser.team || f.away === currentUser.team);
-                            return `
-                                <div class="bg-black/50 p-2.5 rounded-lg mb-2 flex justify-between items-center ${isMyTeam ? 'border border-epl-mint' : ''} ${f.played ? 'opacity-60' : ''}">
-                                    <div>
-                                        <span class="text-[10px] text-epl-cyan font-semibold block">⏰ ${f.weekday}, ${f.date} (${f.time})</span>
-                                        <div class="font-bold text-xs ${isMyTeam ? 'text-epl-mint' : 'text-white'}">${f.home} vs ${f.away}</div>
-                                    </div>
-                                    <div>${f.played ? `<strong class="text-epl-mint text-xs px-2 py-1 bg-black/60 rounded">${f.homeScore} - ${f.awayScore}</strong>` : '<span class="text-[10px] bg-epl-purple text-epl-mint px-2 py-0.5 rounded font-bold uppercase">Upcoming</span>'}</div>
+                ${t.rules ? `<p style="font-size:11px;color:var(--epl-text-sub);margin-bottom:12px;line-height:1.5;">${t.rules.substring(0, 120)}${t.rules.length > 120 ? '...' : ''}</p>` : ''}
+                <div class="tournament-section-header">
+                    <span style="font-size:14px;">📅</span>
+                    <h4>Match Fixtures</h4>
+                    <span style="font-size:10px;color:var(--epl-text-sub);font-weight:700;margin-left:auto;">${filteredFixtures.length} matches</span>
+                </div>
+                ${filteredFixtures.length === 0
+                    ? `<p style="font-size:11px;color:#555;text-align:center;padding:12px 0;">No fixtures found matching your search.</p>`
+                    : filteredFixtures.slice(0, 5).map(f => {
+                        const isMyTeam = currentUser && (f.home === currentUser.team || f.away === currentUser.team);
+                        return isMyTeam
+                            ? `<div class="my-match-card">
+                                <div style="padding-top:10px;">
+                                    <span class="fixture-time">⏰ ${f.weekday}, ${f.date} · ${f.time}</span>
+                                    <div class="fixture-matchup" style="color:var(--epl-mint);">${f.home} <span style="color:var(--epl-text-sub);">vs</span> ${f.away}</div>
                                 </div>
-                            `;
-                        }).join('')
-                    }
-                </div>
+                                ${f.played
+                                    ? `<div class="fixture-score-badge">${f.homeScore} – ${f.awayScore}</div>`
+                                    : `<div class="fixture-upcoming-badge">⏳ Upcoming</div>`}
+                               </div>`
+                            : `<div class="fixture-row ${f.played ? 'opacity-60' : ''}">
+                                <div>
+                                    <span class="fixture-time">⏰ ${f.weekday}, ${f.date} · ${f.time}</span>
+                                    <div class="fixture-matchup">${f.home} <span style="color:var(--epl-text-sub);">vs</span> ${f.away}</div>
+                                </div>
+                                ${f.played
+                                    ? `<div class="fixture-score-badge">${f.homeScore} – ${f.awayScore}</div>`
+                                    : `<div class="fixture-upcoming-badge">Upcoming</div>`}
+                               </div>`;
+                    }).join('')
+                }
+                ${filteredFixtures.length > 5 ? `<button onclick="showPage('userFixtures')" style="width:100%;margin-top:8px;padding:9px;background:rgba(255,255,255,0.05);border:1px solid var(--epl-border);border-radius:8px;color:var(--epl-cyan);font-size:11px;font-weight:800;cursor:pointer;text-transform:uppercase;letter-spacing:0.5px;">View All ${filteredFixtures.length} Fixtures ➔</button>` : ''}
             </div>
         `;
     }).join('');
@@ -462,19 +523,25 @@ function renderTournamentsList() {
 
     const tournaments = window.db.tournaments || [];
     if (tournaments.length === 0) {
-        container.innerHTML = '<p class="text-sub py-4">No tournaments available.</p>';
+        container.innerHTML = `<div style="text-align:center;padding:32px 0;"><div style="font-size:36px;">🏆</div><p style="color:var(--epl-text-sub);font-size:12px;margin-top:8px;">No tournaments available yet.</p></div>`;
         return;
     }
 
-    container.innerHTML = tournaments.map(t => `
-        <div class="card mb-0 cursor-pointer hover:scale-[1.02] transition-transform" onclick="openTournamentDetails(${t.id})">
-            <div class="card-header">
-                <span class="flex items-center gap-2">🏆 ${t.name}</span>
+    container.innerHTML = tournaments.map(t => {
+        const tFixtures = (window.db.fixtures || []).filter(f => f.tournId === t.id);
+        const playedCount = tFixtures.filter(f => f.played).length;
+        return `
+            <div class="card mb-0" style="cursor:pointer;transition:transform 0.2s;" onmouseover="this.style.transform='scale(1.01)'" onmouseout="this.style.transform='scale(1)'" onclick="openTournamentDetails(${t.id})">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+                    <span style="font-size:20px;">🏆</span>
+                    <span style="font-size:10px;background:rgba(0,255,135,0.1);border:1px solid rgba(0,255,135,0.2);color:var(--epl-mint);padding:2px 8px;border-radius:20px;font-weight:800;">${playedCount}/${tFixtures.length} Played</span>
+                </div>
+                <div style="font-size:13px;font-weight:900;color:#fff;margin-bottom:6px;">${t.name}</div>
+                <p style="font-size:11px;color:var(--epl-text-sub);margin-bottom:12px;line-height:1.4;">${(t.rules || '').substring(0, 80)}...</p>
+                <button class="btn btn-primary" style="width:100%;font-size:11px;padding:8px;">📋 View Details & Standings ➔</button>
             </div>
-            <p class="text-xs text-gray-300 mb-3 whitespace-pre-line">${t.rules.substring(0, 90)}...</p>
-            <button class="btn btn-primary w-full">➔ Open Tournament</button>
-        </div>
-    `).join('');
+        `;
+    }).join('');
 }
 
 function openTournamentDetails(id) {
@@ -572,42 +639,59 @@ function renderUserFixturesGrouped() {
     if (!container) return;
 
     let fixtures = window.db.fixtures || [];
+
     if (activeFixturesFilter === 'upcoming') {
         fixtures = fixtures.filter(f => !f.played);
     } else if (activeFixturesFilter === 'played') {
         fixtures = fixtures.filter(f => f.played);
+    } else if (activeFixturesFilter === 'my_team' && currentUser) {
+        fixtures = fixtures.filter(f => f.home === currentUser.team || f.away === currentUser.team);
     }
 
     if (fixtures.length === 0) {
-        container.innerHTML = '<p class="text-sub py-4">No fixtures available for this view.</p>';
+        container.innerHTML = `<div style="text-align:center;padding:32px 0;"><div style="font-size:36px;">📅</div><p style="color:var(--epl-text-sub);font-size:12px;margin-top:8px;">No fixtures for this filter.</p></div>`;
         return;
     }
 
-    // Group by Date
+    // Group by date
     const grouped = {};
     fixtures.forEach(f => {
         if (!grouped[f.date]) grouped[f.date] = [];
         grouped[f.date].push(f);
     });
 
-    container.innerHTML = Object.keys(grouped).map(dateKey => `
-        <div class="mb-4">
-            <h4 class="text-epl-cyan text-xs font-bold uppercase tracking-wider mb-2 border-b border-epl-border pb-1">
-                📅 ${grouped[dateKey][0]?.weekday || 'Scheduled Date'}: ${dateKey}
-            </h4>
-            ${grouped[dateKey].map(f => `
-                <div class="bg-black/50 p-3 rounded-lg mb-2 flex justify-between items-center border border-white/5">
-                    <div>
-                        <div class="text-[10px] text-gray-400 mb-0.5">⏰ ${f.time}</div>
-                        <div class="font-bold text-xs text-white">${f.home} vs ${f.away}</div>
-                    </div>
-                    <div>
-                        ${f.played ? `<strong class="text-epl-mint text-xs px-2 py-1 bg-black/60 rounded">${f.homeScore} - ${f.awayScore}</strong>` : '<span class="text-[10px] bg-epl-purple text-epl-mint px-2 py-0.5 rounded font-bold uppercase">Upcoming</span>'}
-                    </div>
+    container.innerHTML = Object.keys(grouped).map((dateKey, idx) => {
+        const dayFixtures = grouped[dateKey];
+        const weekday = dayFixtures[0]?.weekday || '';
+        return `
+            <div style="margin-top:${idx === 0 ? '0' : '4px'}">
+                <div class="date-group-header">
+                    <span class="date-group-label">📅 ${weekday} · ${dateKey}</span>
                 </div>
-            `).join('')}
-        </div>
-    `).join('');
+                ${dayFixtures.map(f => {
+                    const isMyTeam = currentUser && (f.home === currentUser.team || f.away === currentUser.team);
+                    return isMyTeam
+                        ? `<div class="my-match-card">
+                            <div style="padding-top:10px;">
+                                <span class="fixture-time">⏰ ${f.time}</span>
+                                <div class="fixture-matchup" style="color:var(--epl-mint);">${f.home} <span style="color:var(--epl-text-sub);">vs</span> ${f.away}</div>
+                            </div>
+                            ${f.played
+                                ? `<div class="fixture-score-badge">${f.homeScore} – ${f.awayScore}</div>`
+                                : `<div class="fixture-upcoming-badge">⏳ Upcoming</div>`}
+                           </div>`
+                        : `<div class="fixture-row ${f.played ? '' : ''}">
+                            <div>
+                                <span class="fixture-time">⏰ ${f.time}</span>
+                                <div class="fixture-matchup">${f.home} <span style="color:var(--epl-text-sub);">vs</span> ${f.away}</div>
+                            </div>
+                            ${f.played
+                                ? `<div class="fixture-score-badge">${f.homeScore} – ${f.awayScore}</div>`
+                                : `<div class="fixture-upcoming-badge">Upcoming</div>`}
+                           </div>`;
+                }).join('')}
+            </div>`;
+    }).join('');
 }
 
 // USER: DLS KITS DIRECTORY DATA & RENDERER
@@ -750,11 +834,10 @@ function renderFriendsPage() {
 
     const query = (document.getElementById('friendSearchInput')?.value || '').toLowerCase();
     const otherUsers = (window.db.users || []).filter(u => u.id !== currentUser.id && u.role !== 'admin');
-
     const filtered = otherUsers.filter(u => u.name.toLowerCase().includes(query) || u.team.toLowerCase().includes(query));
 
     if (filtered.length === 0) {
-        container.innerHTML = '<p class="text-sub py-3">No players found.</p>';
+        container.innerHTML = `<div style="text-align:center;padding:20px 0;"><div style="font-size:28px;">👥</div><p style="color:var(--epl-text-sub);font-size:11px;margin-top:6px;">No players found.</p></div>`;
         return;
     }
 
@@ -763,21 +846,23 @@ function renderFriendsPage() {
         const hasRequested = (currentUser.friendRequests || []).includes(u.id);
 
         return `
-            <div class="bg-black/40 p-2.5 rounded-lg mb-2 flex justify-between items-center border border-epl-border">
-                <div class="flex items-center gap-3">
-                    <div class="relative">
-                        <img src="${u.pic || 'https://via.placeholder.com/40'}" class="w-10 h-10 rounded-full object-cover border border-epl-mint">
-                        <span class="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full ${u.online ? 'bg-epl-mint' : 'bg-gray-500'} border border-black"></span>
+            <div class="friend-card">
+                <div style="display:flex;align-items:center;gap:10px;min-width:0;">
+                    <div class="friend-avatar-wrap">
+                        <img src="${u.pic || 'https://via.placeholder.com/40?text=⚽'}" class="friend-avatar" alt="${u.name}" onerror="this.src='https://via.placeholder.com/40?text=⚽'">
+                        <span class="online-dot ${u.online ? 'online' : 'offline'}"></span>
                     </div>
-                    <div>
-                        <div class="font-bold text-xs text-white">${u.name}</div>
-                        <div class="text-[10px] text-epl-cyan">${u.team}</div>
+                    <div style="min-width:0;">
+                        <div style="font-size:12px;font-weight:800;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${u.name}</div>
+                        <div style="font-size:10px;color:var(--epl-cyan);font-weight:700;">👕 ${u.team}</div>
                     </div>
                 </div>
-                <div>
-                    ${isFriend ? `<button class="btn btn-primary text-xs px-3 py-1" onclick="selectChatFriend(${u.id})">💬 Chat</button>` :
-                      hasRequested ? `<span class="text-[10px] bg-epl-purple text-epl-mint px-2 py-1 rounded font-bold">Request Sent</span>` :
-                      `<button class="btn text-xs px-3 py-1 bg-epl-pink text-white" onclick="sendFriendRequest(${u.id})">👤 Add</button>`
+                <div style="flex-shrink:0;">
+                    ${isFriend
+                        ? `<button class="btn btn-primary" style="font-size:10px;padding:6px 12px;" onclick="selectChatFriend(${u.id})">💬 Chat</button>`
+                        : hasRequested
+                            ? `<span style="font-size:9px;background:rgba(0,255,135,0.1);border:1px solid rgba(0,255,135,0.2);color:var(--epl-mint);padding:4px 8px;border-radius:20px;font-weight:900;">✓ Sent</span>`
+                            : `<button class="btn" style="font-size:10px;padding:6px 12px;background:rgba(233,0,82,0.15);border:1px solid rgba(233,0,82,0.35);color:var(--epl-pink);" onclick="sendFriendRequest(${u.id})">+ Add</button>`
                     }
                 </div>
             </div>
@@ -859,7 +944,40 @@ function renderProfilePage() {
     document.getElementById('profileFullName').value = currentUser.name || '';
     document.getElementById('profileTeamName').value = currentUser.team || '';
     document.getElementById('profilePicUrl').value = currentUser.pic || '';
-    document.getElementById('profilePreviewImg').src = currentUser.pic || 'https://via.placeholder.com/100?text=Avatar';
+    document.getElementById('profilePreviewImg').src = currentUser.pic || 'https://via.placeholder.com/100?text=⚽';
+    document.getElementById('profilePreviewImg').onerror = function() { this.src = 'https://via.placeholder.com/100?text=⚽'; };
+
+    // Inject profile stats row above form if not already rendered
+    const form = document.querySelector('#userProfile form');
+    if (form && !document.getElementById('profileStatsRow')) {
+        const statsRow = document.createElement('div');
+        statsRow.id = 'profileStatsRow';
+        const myFixtures = (window.db.fixtures || []).filter(f => f.home === currentUser.team || f.away === currentUser.team);
+        const myWins = myFixtures.filter(f => f.played && ((f.home === currentUser.team && f.homeScore > f.awayScore) || (f.away === currentUser.team && f.awayScore > f.homeScore))).length;
+        const myPlayed = myFixtures.filter(f => f.played).length;
+        const myFriends = (currentUser.friends || []).length;
+        statsRow.innerHTML = `
+            <div class="profile-stat-row">
+                <div class="profile-stat-pill">
+                    <div class="label">📅 Matches</div>
+                    <div class="value">${myPlayed}</div>
+                </div>
+                <div class="profile-stat-pill">
+                    <div class="label">🏆 Wins</div>
+                    <div class="value">${myWins}</div>
+                </div>
+                <div class="profile-stat-pill">
+                    <div class="label">👥 Friends</div>
+                    <div class="value">${myFriends}</div>
+                </div>
+                <div class="profile-stat-pill">
+                    <div class="label">⭐ Level</div>
+                    <div class="value" style="color:var(--epl-cyan);">Pro</div>
+                </div>
+            </div>
+        `;
+        form.insertBefore(statsRow, form.querySelector('.form-group'));
+    }
 }
 
 async function handleUpdateProfile(e) {
