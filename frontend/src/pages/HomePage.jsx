@@ -109,13 +109,13 @@ export default function HomePage() {
                         </div>
                     </div>
 
-                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <div className="welcome-banner-actions" style={{ display: 'flex', gap: '0.5rem' }}>
                         <button className="gv-btn gv-btn-primary" onClick={() => navigate('/chat')} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
-                            <MessageCircle size={15} /> Direct Messages
+                            <MessageCircle size={15} /> Messages
                             {unreadChatCount > 0 && <span className="unread-badge">{unreadChatCount}</span>}
                         </button>
                         <button className="gv-btn gv-btn-secondary" onClick={() => navigate('/forums')} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
-                            <MessagesSquare size={15} /> Community Forums
+                            <MessagesSquare size={15} /> Forums
                         </button>
                     </div>
                 </div>
@@ -131,18 +131,18 @@ export default function HomePage() {
                     overflow: 'hidden'
                 }}>
                     <div style={{ position: 'relative', zIndex: 2, maxWidth: '800px' }}>
-                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.3rem 0.8rem', borderRadius: '20px', background: 'rgba(0, 255, 135, 0.12)', border: '1px solid var(--gv-mint)', color: 'var(--gv-mint)', fontSize: '0.75rem', fontWeight: 800, marginBottom: '1rem' }}>
+                        <div className="hero-badge" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.3rem 0.8rem', borderRadius: '20px', background: 'rgba(0, 255, 135, 0.12)', border: '1px solid var(--gv-mint)', color: 'var(--gv-mint)', fontSize: '0.75rem', fontWeight: 800, marginBottom: '1rem' }}>
                             <Sparkles size={14} /> WELCOME TO GAMEVERSE HUB
                         </div>
-                        <h1 style={{ fontSize: 'clamp(1.6rem, 4vw, 2.5rem)', fontWeight: 900, color: 'white', lineHeight: 1.15, marginBottom: '0.8rem', letterSpacing: '-0.5px' }}>
+                        <h1 className="hero-heading" style={{ fontSize: 'clamp(1.35rem, 4vw, 2.5rem)', fontWeight: 900, color: 'white', lineHeight: 1.15, marginBottom: '0.8rem', letterSpacing: '-0.5px' }}>
                             The Ultimate <span style={{ color: 'var(--gv-mint)' }}>Multi-Game Arena</span> & Community Platform
                         </h1>
-                        <p style={{ fontSize: '0.95rem', color: '#c4b5fd', lineHeight: 1.5, marginBottom: '1.5rem', fontWeight: 500 }}>
-                            Track live tournament scores, match fixtures, community forums, and player rosters for Dream League Soccer (DLS), eFootball, CoD Mobile, PUBG, and EA Sports FC in real-time.
+                        <p className="hero-subtext" style={{ fontSize: '0.95rem', color: '#c4b5fd', lineHeight: 1.5, marginBottom: '1.5rem', fontWeight: 500 }}>
+                            Track live scores, fixtures, community forums, and player rosters for DLS, eFootball, CoD Mobile, PUBG & EA FC.
                         </p>
 
                         {/* Live Platform Stats */}
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '0.75rem', marginBottom: '1.75rem' }}>
+                        <div className="hero-stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '0.75rem', marginBottom: '1.5rem' }}>
                             <div style={{ background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.08)', padding: '0.6rem 0.8rem', borderRadius: '10px' }}>
                                 <div style={{ fontSize: '1.2rem', fontWeight: 900, color: 'var(--gv-mint)' }}>6+ Titles</div>
                                 <div style={{ fontSize: '0.65rem', color: 'var(--gv-text-sub)', fontWeight: 700 }}>Featured Games</div>
@@ -161,20 +161,20 @@ export default function HomePage() {
                             </div>
                         </div>
 
-                        <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                        <div className="hero-cta-group" style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
                             <button 
                                 className="gv-btn gv-btn-primary"
                                 onClick={() => navigate('/auth')}
                                 style={{ padding: '0.65rem 1.4rem', fontSize: '0.9rem', display: 'inline-flex', alignItems: 'center', gap: '0.5rem', boxShadow: '0 0 20px var(--gv-mint-glow)' }}
                             >
-                                <KeyRound size={16} /> Enter Arena / Sign In
+                                <KeyRound size={16} /> Sign In
                             </button>
                             <button 
                                 className="gv-btn gv-btn-secondary"
                                 onClick={() => navigate('/auth')}
                                 style={{ padding: '0.65rem 1.4rem', fontSize: '0.9rem', display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}
                             >
-                                <UserPlus size={16} /> Register Gamer Handle
+                                <UserPlus size={16} /> Register
                             </button>
                         </div>
                     </div>
@@ -214,7 +214,7 @@ export default function HomePage() {
                     </button>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(170px, 1fr))', gap: '0.75rem' }}>
+                <div className="games-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '0.75rem' }}>
                     {games.slice(0, 6).map(g => (
                         <div 
                             key={g.id}
@@ -244,9 +244,9 @@ export default function HomePage() {
 
             {/* Active Tournaments Feed */}
             <div className="gv-card">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                <div className="tournament-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                     <h3 style={{ fontSize: '1rem', fontWeight: 900, color: 'white', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <Radio size={18} /> Live Tournaments & Leagues Feed
+                        <Radio size={18} /> Live Tournaments & Leagues
                     </h3>
                     <div style={{ position: 'relative' }}>
                         <Search size={14} style={{ position: 'absolute', left: '8px', top: '50%', transform: 'translateY(-50%)', color: 'var(--gv-text-muted)' }} />
@@ -369,7 +369,7 @@ export default function HomePage() {
                         </button>
                     </div>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '0.75rem' }}>
+                    <div className="forums-preview-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '0.75rem' }}>
                         {forums.slice(0, 3).map(f => (
                             <div 
                                 key={f.id}

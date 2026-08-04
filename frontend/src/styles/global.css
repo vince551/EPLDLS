@@ -301,13 +301,107 @@ body {
         font-size: 0.78rem;
     }
     h1 {
-        font-size: 1.5rem !important;
+        font-size: 1.4rem !important;
     }
     h2 {
         font-size: 1.2rem !important;
     }
     h3 {
         font-size: 0.95rem !important;
+    }
+
+    /* ── Hero CTA Buttons ── */
+    .hero-cta-group {
+        display: grid !important;
+        grid-template-columns: 1fr 1fr !important;
+        gap: 0.5rem !important;
+        width: 100% !important;
+    }
+    .hero-cta-group .gv-btn {
+        width: 100% !important;
+        justify-content: center !important;
+        padding: 0.6rem 0.5rem !important;
+        font-size: 0.72rem !important;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    /* ── Hero Stats Grid: 2x2 ── */
+    .hero-stats-grid {
+        grid-template-columns: 1fr 1fr !important;
+        gap: 0.5rem !important;
+    }
+    .hero-stats-grid > div {
+        padding: 0.55rem 0.6rem !important;
+        text-align: center;
+    }
+
+    /* ── Hero Badge + Heading ── */
+    .hero-badge {
+        font-size: 0.65rem !important;
+        padding: 0.25rem 0.6rem !important;
+    }
+    .hero-heading {
+        font-size: 1.35rem !important;
+        line-height: 1.2 !important;
+        margin-bottom: 0.6rem !important;
+    }
+    .hero-subtext {
+        font-size: 0.8rem !important;
+        margin-bottom: 1rem !important;
+    }
+
+    /* ── Logged-in Welcome Banner ── */
+    .welcome-banner-actions {
+        display: grid !important;
+        grid-template-columns: 1fr 1fr !important;
+        gap: 0.4rem !important;
+        width: 100% !important;
+    }
+    .welcome-banner-actions .gv-btn {
+        font-size: 0.7rem !important;
+        padding: 0.45rem 0.4rem !important;
+        justify-content: center !important;
+    }
+
+    /* ── Featured Games Grid ── */
+    .games-grid {
+        grid-template-columns: 1fr 1fr !important;
+    }
+
+    /* ── Tournament header: stack on mobile ── */
+    .tournament-header {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 0.5rem !important;
+    }
+    .tournament-header input.gv-input {
+        max-width: 100% !important;
+        width: 100% !important;
+    }
+
+    /* ── Forums grid: single col ── */
+    .forums-preview-grid {
+        grid-template-columns: 1fr !important;
+    }
+
+    /* Fixture match vs text: allow wrap */
+    .fixture-row {
+        flex-wrap: wrap;
+        gap: 0.3rem;
+    }
+}
+
+@media (max-width: 400px) {
+    .hero-cta-group {
+        grid-template-columns: 1fr !important;
+    }
+    .welcome-banner-actions {
+        grid-template-columns: 1fr !important;
+    }
+    .hero-heading {
+        font-size: 1.2rem !important;
     }
 }
 
