@@ -434,3 +434,17 @@ body {
     border-color: var(--gv-mint);
     color: var(--gv-mint);
 }
+
+/* Home Page Main Columns Split */
+.home-main-layout {
+    display: grid;
+    grid-template-columns: 1.5fr 1fr;
+    gap: 1.5rem;
+    align-items: start;
+}
+@media (max-width: 992px) {
+    .home-main-layout {
+        grid-template-columns: 1fr !important;
+    }
+}
+

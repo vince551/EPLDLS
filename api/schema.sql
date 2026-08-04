@@ -131,6 +131,19 @@ CREATE TABLE IF NOT EXISTS `forum_post_likes` (
     UNIQUE KEY `unique_post_user_like` (`post_id`, `user_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- 11. Forum Post Emoji Reactions Table
+-- Run this on existing databases: (schema.sql handles new installs automatically)
+CREATE TABLE IF NOT EXISTS `forum_post_reactions` (
+    `id` INT AUTO_INCREMENT PRIMARY KEY,
+    `post_id` INT NOT NULL,
+    `user_id` INT NOT NULL,
+    `reaction` VARCHAR(10) NOT NULL COMMENT 'Emoji: 👍 🔥 😮',
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (`post_id`) REFERENCES `forum_posts`(`id`) ON DELETE CASCADE,
+    FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE,
+    UNIQUE KEY `unique_post_user_reaction` (`post_id`, `user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- ==========================================================================
 -- SEED INITIAL DATA
 -- ==========================================================================

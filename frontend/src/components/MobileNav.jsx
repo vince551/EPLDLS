@@ -1,9 +1,11 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Home, Gamepad2, MessageCircle, MessagesSquare, User, LayoutDashboard } from 'lucide-react';
+import { Home, Gamepad2, BarChart2, MessageCircle, MessagesSquare, User, LayoutDashboard } from 'lucide-react';
 
 export default function MobileNav() {
+    const { currentUser, unreadChatCount } = useAuth();
+
     return (
         <nav style={{
             position: 'fixed',
@@ -25,6 +27,10 @@ export default function MobileNav() {
             <NavLink to="/games" className={({ isActive }) => `m-nav-item ${isActive ? 'active' : ''}`}>
                 <Gamepad2 size={20} />
                 <span>Games</span>
+            </NavLink>
+            <NavLink to="/leaderboard" className={({ isActive }) => `m-nav-item ${isActive ? 'active' : ''}`}>
+                <BarChart2 size={20} />
+                <span>Ranks</span>
             </NavLink>
 
             {currentUser ? (

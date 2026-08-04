@@ -86,6 +86,22 @@ if ($method === 'GET' && $action === 'get') {
             $userLikeStmt->execute([$p['id'], $userId]);
             $p['isLiked'] = ($userLikeStmt->fetchColumn() > 0);
         }
+
+        // Fetch emoji reaction counts
+        $rStmt = $pdo->prepare("SELECT reaction, COUNT(*) as cnt FROM forum_post_reactions WHERE post_id = ? GROUP BY reaction");
+        $rStmt->execute([$p['id']]);
+        $p['reactions'] = [];
+        foreach ($rStmt->fetchAll() as $r) {
+            $p['reactions'][$r['reaction']] = (int)$r['cnt'];
+        }
+        // Current user's reaction
+        $p['myReaction'] = null;
+        if ($userId > 0) {
+            $myRStmt = $pdo->prepare("SELECT reaction FROM forum_post_reactions WHERE post_id = ? AND user_id = ?");
+            $myRStmt->execute([$p['id'], $userId]);
+            $myRRow = $myRStmt->fetch();
+            if ($myRRow) $p['myReaction'] = $myRRow['reaction'];
+        }
     }
 
     jsonResponse(['forum' => $forum, 'posts' => $posts]);
@@ -150,6 +166,51 @@ if ($method === 'POST') {
         $stmt->execute([$id]);
 
         jsonResponse(['success' => true]);
+    }
+
+    // ── Emoji Reactions ────────────────────────────────────────────────────
+    if ($action === 'react') {
+        $postId = (int)($input['postId'] ?? 0);
+        $userId = (int)($input['userId'] ?? 0);
+        $reaction = trim($input['reaction'] ?? '');
+
+        if (!$postId || !$userId || !$reaction) {
+            jsonResponse(['error' => 'postId, userId and reaction are required.'], 400);
+        }
+
+        // Toggle: if same reaction exists for user+post, remove it; otherwise upsert
+        $existing = $pdo->prepare("SELECT id, reaction FROM forum_post_reactions WHERE post_id = ? AND user_id = ?");
+        $existing->execute([$postId, $userId]);
+        $row = $existing->fetch();
+
+        if ($row) {
+            if ($row['reaction'] === $reaction) {
+                // Same emoji → remove (toggle off)
+                $pdo->prepare("DELETE FROM forum_post_reactions WHERE post_id = ? AND user_id = ?")->execute([$postId, $userId]);
+            } else {
+                // Different emoji → switch
+                $pdo->prepare("UPDATE forum_post_reactions SET reaction = ? WHERE post_id = ? AND user_id = ?")->execute([$reaction, $postId, $userId]);
+            }
+        } else {
+            // No existing → insert
+            $pdo->prepare("INSERT INTO forum_post_reactions (post_id, user_id, reaction) VALUES (?, ?, ?)")->execute([$postId, $userId, $reaction]);
+        }
+
+        // Return updated counts
+        $counts = $pdo->prepare("SELECT reaction, COUNT(*) as cnt FROM forum_post_reactions WHERE post_id = ? GROUP BY reaction");
+        $counts->execute([$postId]);
+        $reactionData = [];
+        foreach ($counts->fetchAll() as $r) {
+            $reactionData[$r['reaction']] = (int)$r['cnt'];
+        }
+
+        $myReaction = null;
+        $myStmt = $pdo->prepare("SELECT reaction FROM forum_post_reactions WHERE post_id = ? AND user_id = ?");
+        $myStmt->execute([$postId, $userId]);
+        $myRow = $myStmt->fetch();
+        if ($myRow) $myReaction = $myRow['reaction'];
+
+        jsonResponse(['reactions' => $reactionData, 'myReaction' => $myReaction]);
     }
 }
 

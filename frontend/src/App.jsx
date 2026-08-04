@@ -12,6 +12,7 @@ import AuthPage from './pages/AuthPage';
 import GamesPage from './pages/GamesPage';
 import TournamentsPage from './pages/TournamentsPage';
 import FixturesPage from './pages/FixturesPage';
+import LeaderboardPage from './pages/LeaderboardPage';
 import FriendsPage from './pages/FriendsPage';
 import ChatPage from './pages/ChatPage';
 import ForumsPage from './pages/ForumsPage';
@@ -41,6 +42,7 @@ function MainLayout() {
                     <Route path="/games" element={<GamesPage />} />
                     <Route path="/tournaments" element={<TournamentsPage />} />
                     <Route path="/fixtures" element={<FixturesPage />} />
+                    <Route path="/leaderboard" element={<LeaderboardPage />} />
                     <Route path="/friends" element={<FriendsPage />} />
                     <Route path="/chat" element={<ProtectedRoute><ChatPage /></ProtectedRoute>} />
                     <Route path="/forums" element={<ForumsPage />} />

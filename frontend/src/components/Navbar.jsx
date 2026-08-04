@@ -2,7 +2,7 @@ import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { 
-    Home, Gamepad2, Trophy, CalendarDays, Users, MessageCircle, 
+    Home, Gamepad2, Trophy, CalendarDays, BarChart2, Users, MessageCircle, 
     MessagesSquare, User, LayoutDashboard, LogOut 
 } from 'lucide-react';
 
@@ -32,6 +32,9 @@ export default function Navbar() {
             </NavLink>
             <NavLink to="/fixtures" className={({ isActive }) => `gv-nav-link ${isActive ? 'active' : ''}`}>
                 <CalendarDays size={15} /> Fixtures
+            </NavLink>
+            <NavLink to="/leaderboard" className={({ isActive }) => `gv-nav-link ${isActive ? 'active' : ''}`}>
+                <BarChart2 size={15} /> Leaderboard
             </NavLink>
             <NavLink to="/friends" className={({ isActive }) => `gv-nav-link ${isActive ? 'active' : ''}`}>
                 <Users size={15} /> Gamers

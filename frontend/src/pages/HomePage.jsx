@@ -4,8 +4,17 @@ import { useNavigate } from 'react-router-dom';
 import { apiFetch } from '../utils/api';
 import { 
     MessageCircle, MessagesSquare, Gamepad2, Trophy, CalendarDays, Users, 
-    Radio, Clock, ArrowRight, Shirt, Search, Sparkles, KeyRound, UserPlus, Flame, ShieldCheck, Zap
+    Radio, Clock, ArrowRight, Shirt, Search, Sparkles, KeyRound, UserPlus, Flame, ShieldCheck, Zap, Globe
 } from 'lucide-react';
+
+function timeAgo(dateStr) {
+    if (!dateStr) return '';
+    const diff = (Date.now() - new Date(dateStr).getTime()) / 1000;
+    if (diff < 60) return 'just now';
+    if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+    if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+    return `${Math.floor(diff / 86400)}d ago`;
+}
 
 export default function HomePage() {
     const { currentUser, games, activeGame, setActiveGame, unreadChatCount } = useAuth();
@@ -14,24 +23,47 @@ export default function HomePage() {
     const [tournaments, setTournaments] = useState([]);
     const [fixtures, setFixtures] = useState([]);
     const [forums, setForums] = useState([]);
+    const [activities, setActivities] = useState([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
+
+    const fetchActivity = async () => {
+        try {
+            const data = await apiFetch('/activity.php');
+            if (Array.isArray(data)) {
+                setActivities(data);
+            }
+        } catch (e) {
+            console.error('Failed to fetch activity:', e);
+        }
+    };
 
     useEffect(() => {
         let isMounted = true;
         Promise.all([
             apiFetch('/tournaments.php?action=list').catch(() => []),
             apiFetch('/fixtures.php?action=list').catch(() => []),
-            apiFetch('/forums.php?action=list').catch(() => [])
-        ]).then(([tournData, fixData, forumData]) => {
+            apiFetch('/forums.php?action=list').catch(() => []),
+            apiFetch('/activity.php').catch(() => [])
+        ]).then(([tournData, fixData, forumData, actData]) => {
             if (isMounted) {
                 if (Array.isArray(tournData)) setTournaments(tournData);
                 if (Array.isArray(fixData)) setFixtures(fixData);
                 if (Array.isArray(forumData)) setForums(forumData);
+                if (Array.isArray(actData)) setActivities(actData);
                 setLoading(false);
             }
         });
-        return () => { isMounted = false; };
+
+        // Polling activity feed every 30 seconds for live updates
+        const interval = setInterval(() => {
+            if (isMounted) fetchActivity();
+        }, 30000);
+
+        return () => { 
+            isMounted = false; 
+            clearInterval(interval);
+        };
     }, []);
 
     // Filter tournaments by active game
@@ -242,166 +274,252 @@ export default function HomePage() {
                 </div>
             </div>
 
-            {/* Active Tournaments Feed */}
-            <div className="gv-card">
-                <div className="tournament-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                    <h3 style={{ fontSize: '1rem', fontWeight: 900, color: 'white', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <Radio size={18} /> Live Tournaments & Leagues
-                    </h3>
-                    <div style={{ position: 'relative' }}>
-                        <Search size={14} style={{ position: 'absolute', left: '8px', top: '50%', transform: 'translateY(-50%)', color: 'var(--gv-text-muted)' }} />
-                        <input 
-                            type="text"
-                            className="gv-input"
-                            placeholder="Search tournaments..."
-                            value={search}
-                            onChange={(e) => setSearch(e.target.value)}
-                            style={{ maxWidth: '200px', padding: '0.35rem 0.6rem 0.35rem 1.8rem', fontSize: '0.75rem' }}
-                        />
+            {/* Main Split Grid */}
+            <div className="home-main-layout">
+                {/* Left Column: Tournaments & Forums */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                    {/* Active Tournaments Feed */}
+                    <div className="gv-card" style={{ margin: 0 }}>
+                        <div className="tournament-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                            <h3 style={{ fontSize: '1rem', fontWeight: 900, color: 'white', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                <Radio size={18} /> Live Tournaments & Leagues
+                            </h3>
+                            <div style={{ position: 'relative' }}>
+                                <Search size={14} style={{ position: 'absolute', left: '8px', top: '50%', transform: 'translateY(-50%)', color: 'var(--gv-text-muted)' }} />
+                                <input 
+                                    type="text"
+                                    className="gv-input"
+                                    placeholder="Search tournaments..."
+                                    value={search}
+                                    onChange={(e) => setSearch(e.target.value)}
+                                    style={{ maxWidth: '200px', padding: '0.35rem 0.6rem 0.35rem 1.8rem', fontSize: '0.75rem' }}
+                                />
+                            </div>
+                        </div>
+
+                        {loading ? (
+                            <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--gv-text-sub)' }}>Loading tournaments...</div>
+                        ) : filteredTournaments.length === 0 ? (
+                            <div style={{ textAlign: 'center', padding: '2.5rem 0' }}>
+                                <Trophy size={40} style={{ color: 'var(--gv-text-muted)', marginBottom: '0.5rem' }} />
+                                <p style={{ color: 'var(--gv-text-sub)', fontSize: '0.85rem' }}>No tournaments found for this game selection.</p>
+                            </div>
+                        ) : (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                {filteredTournaments.map(t => {
+                                    const tFixtures = fixtures.filter(f => f.tournId === t.id);
+                                    const playedCount = tFixtures.filter(f => f.played).length;
+
+                                    return (
+                                        <div key={t.id} style={{
+                                            background: 'rgba(0, 0, 0, 0.4)',
+                                            border: '1px solid rgba(255, 255, 255, 0.08)',
+                                            borderRadius: '12px',
+                                            padding: '1rem'
+                                        }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                                                <div style={{ fontSize: '1rem', fontWeight: 800, color: 'white', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                                    <Trophy size={16} style={{ color: 'var(--gv-gold)' }} /> {t.name}
+                                                </div>
+                                                <span className="gv-badge gv-badge-mint">
+                                                    {playedCount}/{tFixtures.length} Played
+                                                </span>
+                                            </div>
+                                            {t.rules && (
+                                                <p style={{ fontSize: '0.75rem', color: 'var(--gv-text-sub)', marginBottom: '0.75rem' }}>
+                                                    {t.rules.substring(0, 120)}{t.rules.length > 120 ? '...' : ''}
+                                                </p>
+                                            )}
+
+                                            {/* Fixtures Snippet */}
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                                                {tFixtures.slice(0, 3).map(f => (
+                                                    <div key={f.id} style={{
+                                                        display: 'flex',
+                                                        justifyContent: 'space-between',
+                                                        alignItems: 'center',
+                                                        padding: '0.5rem 0.75rem',
+                                                        background: 'rgba(255, 255, 255, 0.04)',
+                                                        borderRadius: '6px',
+                                                        fontSize: '0.75rem'
+                                                    }}>
+                                                        <div>
+                                                            <span style={{ color: 'var(--gv-cyan)', fontSize: '0.65rem', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                                                                <Clock size={11} /> {f.weekday}, {f.date} · {f.time}
+                                                            </span>
+                                                            <div style={{ fontWeight: 800, color: 'white' }}>
+                                                                {f.home} <span style={{ color: '#aaa' }}>vs</span> {f.away}
+                                                            </div>
+                                                        </div>
+                                                        <div>
+                                                            {f.played ? (
+                                                                <span className="gv-badge gv-badge-mint">{f.homeScore} - {f.awayScore}</span>
+                                                            ) : (
+                                                                <span className="gv-badge gv-badge-cyan">Upcoming</span>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+
+                                            <button 
+                                                onClick={() => navigate('/tournaments')}
+                                                style={{
+                                                    width: '100%',
+                                                    marginTop: '0.75rem',
+                                                    padding: '0.5rem',
+                                                    background: 'rgba(255, 255, 255, 0.05)',
+                                                    border: '1px solid var(--gv-card-border)',
+                                                    borderRadius: '6px',
+                                                    color: 'var(--gv-cyan)',
+                                                    fontSize: '0.75rem',
+                                                    fontWeight: 800,
+                                                    cursor: 'pointer',
+                                                    display: 'inline-flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    gap: '0.3rem'
+                                                }}
+                                            >
+                                                View Full Standings & Fixtures <ArrowRight size={13} />
+                                            </button>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
                     </div>
+
+                    {/* Community Discussions Preview */}
+                    {forums.length > 0 && (
+                        <div className="gv-card" style={{ margin: 0 }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                                <h3 style={{ fontSize: '1rem', fontWeight: 900, color: 'white', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                    <MessagesSquare size={18} style={{ color: 'var(--gv-pink)' }} /> Active Discussions
+                                </h3>
+                                <button 
+                                    onClick={() => navigate('/forums')}
+                                    style={{ background: 'none', border: 'none', color: 'var(--gv-pink)', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}
+                                >
+                                    View All ({forums.length}) <ArrowRight size={14} />
+                                </button>
+                            </div>
+
+                            <div className="forums-preview-grid" style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '0.75rem' }}>
+                                {forums.slice(0, 3).map(f => (
+                                    <div 
+                                        key={f.id}
+                                        onClick={() => navigate(`/forums/${f.id}`)}
+                                        style={{
+                                            background: 'rgba(0, 0, 0, 0.4)',
+                                            border: '1px solid rgba(255, 255, 255, 0.08)',
+                                            borderRadius: '10px',
+                                            padding: '0.9rem',
+                                            cursor: 'pointer',
+                                            transition: 'var(--transition)'
+                                        }}
+                                        onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--gv-pink)'}
+                                        onMouseLeave={e => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'}
+                                    >
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.4rem' }}>
+                                            <span className="gv-badge gv-badge-pink" style={{ fontSize: '0.65rem' }}>
+                                                {f.gameName || 'General'}
+                                            </span>
+                                            <span style={{ fontSize: '0.7rem', color: 'var(--gv-text-muted)' }}>
+                                                by {f.creatorName || 'Gamer'}
+                                            </span>
+                                        </div>
+                                        <div style={{ fontSize: '0.9rem', fontWeight: 800, color: 'white', marginBottom: '0.4rem', lineHeight: 1.2 }}>
+                                            {f.title}
+                                        </div>
+                                        <p style={{ fontSize: '0.75rem', color: 'var(--gv-text-sub)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+                                            {f.description}
+                                        </p>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
                 </div>
 
-                {loading ? (
-                    <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--gv-text-sub)' }}>Loading tournaments...</div>
-                ) : filteredTournaments.length === 0 ? (
-                    <div style={{ textAlign: 'center', padding: '2.5rem 0' }}>
-                        <Trophy size={40} style={{ color: 'var(--gv-text-muted)', marginBottom: '0.5rem' }} />
-                        <p style={{ color: 'var(--gv-text-sub)', fontSize: '0.85rem' }}>No tournaments found for this game selection.</p>
+                {/* Right Column: Platform Activity Feed */}
+                <div className="gv-card" style={{ display: 'flex', flexDirection: 'column', gap: '1rem', margin: 0 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '0.75rem' }}>
+                        <h3 style={{ fontSize: '1rem', fontWeight: 900, color: 'white', display: 'flex', alignItems: 'center', gap: '0.5rem', margin: 0 }}>
+                            <Globe size={18} style={{ color: 'var(--gv-mint)' }} /> Platform Activity
+                        </h3>
+                        <span style={{ fontSize: '0.65rem', color: 'var(--gv-text-muted)', display: 'inline-flex', alignItems: 'center', gap: '0.2rem', fontWeight: 700 }}>
+                            <span className="status-dot status-online" style={{ width: '6px', height: '6px' }}></span> Live Feed
+                        </span>
                     </div>
-                ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                        {filteredTournaments.map(t => {
-                            const tFixtures = fixtures.filter(f => f.tournId === t.id);
-                            const playedCount = tFixtures.filter(f => f.played).length;
 
-                            return (
-                                <div key={t.id} style={{
-                                    background: 'rgba(0, 0, 0, 0.4)',
-                                    border: '1px solid rgba(255, 255, 255, 0.08)',
-                                    borderRadius: '12px',
-                                    padding: '1rem'
-                                }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                                        <div style={{ fontSize: '1rem', fontWeight: 800, color: 'white', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                                            <Trophy size={16} style={{ color: 'var(--gv-gold)' }} /> {t.name}
-                                        </div>
-                                        <span className="gv-badge gv-badge-mint">
-                                            {playedCount}/{tFixtures.length} Played
-                                        </span>
-                                    </div>
-                                    {t.rules && (
-                                        <p style={{ fontSize: '0.75rem', color: 'var(--gv-text-sub)', marginBottom: '0.75rem' }}>
-                                            {t.rules.substring(0, 120)}{t.rules.length > 120 ? '...' : ''}
-                                        </p>
-                                    )}
+                    {activities.length === 0 ? (
+                        <div style={{ textAlign: 'center', padding: '2rem 0', color: 'var(--gv-text-muted)', fontSize: '0.8rem' }}>
+                            No platform activity recorded yet.
+                        </div>
+                    ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem', maxHeight: '550px', overflowY: 'auto', paddingRight: '4px' }}>
+                            {activities.map((act, index) => {
+                                const clickable = act.type === 'forum' || act.type === 'match' || act.type === 'player' || act.type === 'tournament';
+                                const handleClick = () => {
+                                    if (act.type === 'forum') navigate(`/forums/${act.link.split('/').pop()}`);
+                                    else if (act.type === 'match') navigate('/fixtures');
+                                    else if (act.type === 'player') navigate('/friends');
+                                    else if (act.type === 'tournament') navigate('/tournaments');
+                                };
 
-                                    {/* Fixtures Snippet */}
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-                                        {tFixtures.slice(0, 3).map(f => (
-                                            <div key={f.id} style={{
-                                                display: 'flex',
-                                                justifyContent: 'space-between',
-                                                alignItems: 'center',
-                                                padding: '0.5rem 0.75rem',
-                                                background: 'rgba(255, 255, 255, 0.04)',
-                                                borderRadius: '6px',
-                                                fontSize: '0.75rem'
-                                            }}>
-                                                <div>
-                                                    <span style={{ color: 'var(--gv-cyan)', fontSize: '0.65rem', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
-                                                        <Clock size={11} /> {f.weekday}, {f.date} · {f.time}
-                                                    </span>
-                                                    <div style={{ fontWeight: 800, color: 'white' }}>
-                                                        {f.home} <span style={{ color: '#aaa' }}>vs</span> {f.away}
-                                                    </div>
-                                                </div>
-                                                <div>
-                                                    {f.played ? (
-                                                        <span className="gv-badge gv-badge-mint">{f.homeScore} - {f.awayScore}</span>
-                                                    ) : (
-                                                        <span className="gv-badge gv-badge-cyan">Upcoming</span>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-
-                                    <button 
-                                        onClick={() => navigate('/tournaments')}
+                                return (
+                                    <div 
+                                        key={index} 
+                                        onClick={clickable ? handleClick : undefined}
                                         style={{
-                                            width: '100%',
-                                            marginTop: '0.75rem',
-                                            padding: '0.5rem',
-                                            background: 'rgba(255, 255, 255, 0.05)',
-                                            border: '1px solid var(--gv-card-border)',
-                                            borderRadius: '6px',
-                                            color: 'var(--gv-cyan)',
-                                            fontSize: '0.75rem',
-                                            fontWeight: 800,
-                                            cursor: 'pointer',
-                                            display: 'inline-flex',
+                                            display: 'flex',
+                                            gap: '0.75rem',
+                                            padding: '0.75rem',
+                                            background: 'rgba(255, 255, 255, 0.02)',
+                                            border: '1px solid rgba(255, 255, 255, 0.05)',
+                                            borderRadius: '10px',
+                                            fontSize: '0.8rem',
+                                            cursor: clickable ? 'pointer' : 'default',
+                                            transition: 'var(--transition)'
+                                        }}
+                                        onMouseEnter={e => { if (clickable) { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.borderColor = act.color; } }}
+                                        onMouseLeave={e => { if (clickable) { e.currentTarget.style.background = 'rgba(255,255,255,0.02)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.05)'; } }}
+                                    >
+                                        <div style={{
+                                            width: '32px',
+                                            height: '32px',
+                                            borderRadius: '50%',
+                                            background: `rgba(${act.color === '#00ff87' ? '0,255,135' : act.color === '#e90052' ? '233,0,82' : act.color === '#04f5ff' ? '4,245,255' : '255,215,0'}, 0.12)`,
+                                            border: `1px solid ${act.color}`,
+                                            display: 'flex',
                                             alignItems: 'center',
                                             justifyContent: 'center',
-                                            gap: '0.3rem'
-                                        }}
-                                    >
-                                        View Full Standings & Fixtures <ArrowRight size={13} />
-                                    </button>
-                                </div>
-                            );
-                        })}
-                    </div>
-                )}
+                                            fontSize: '1rem',
+                                            flexShrink: 0
+                                        }}>
+                                            {act.icon}
+                                        </div>
+                                        <div style={{ flex: 1, minWidth: 0 }}>
+                                            <span 
+                                                style={{ color: 'var(--gv-text-main)', lineHeight: 1.3, display: 'block', fontSize: '0.8rem' }}
+                                                dangerouslySetInnerHTML={{ __html: act.text }}
+                                            />
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.3rem', fontSize: '0.68rem' }}>
+                                                <span style={{ color: 'var(--gv-text-muted)', fontWeight: 600 }}>{act.sub}</span>
+                                                <span style={{ color: 'var(--gv-cyan)', display: 'inline-flex', alignItems: 'center', gap: '0.2rem', fontWeight: 700 }}>
+                                                    <Clock size={10} /> {timeAgo(act.timestamp)}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
+                </div>
             </div>
 
-            {/* Community Discussions Preview */}
-            {forums.length > 0 && (
-                <div className="gv-card">
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                        <h3 style={{ fontSize: '1rem', fontWeight: 900, color: 'white', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                            <MessagesSquare size={18} style={{ color: 'var(--gv-pink)' }} /> Active Community Discussions
-                        </h3>
-                        <button 
-                            onClick={() => navigate('/forums')}
-                            style={{ background: 'none', border: 'none', color: 'var(--gv-pink)', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}
-                        >
-                            View All Forums ({forums.length}) <ArrowRight size={14} />
-                        </button>
-                    </div>
-
-                    <div className="forums-preview-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '0.75rem' }}>
-                        {forums.slice(0, 3).map(f => (
-                            <div 
-                                key={f.id}
-                                onClick={() => navigate(`/forums/${f.id}`)}
-                                style={{
-                                    background: 'rgba(0, 0, 0, 0.4)',
-                                    border: '1px solid rgba(255, 255, 255, 0.08)',
-                                    borderRadius: '10px',
-                                    padding: '0.9rem',
-                                    cursor: 'pointer',
-                                    transition: 'var(--transition)'
-                                }}
-                            >
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.4rem' }}>
-                                    <span className="gv-badge gv-badge-pink" style={{ fontSize: '0.65rem' }}>
-                                        {f.gameName || 'General'}
-                                    </span>
-                                    <span style={{ fontSize: '0.7rem', color: 'var(--gv-text-muted)' }}>
-                                        by {f.authorName || 'Gamer'}
-                                    </span>
-                                </div>
-                                <div style={{ fontSize: '0.9rem', fontWeight: 800, color: 'white', marginBottom: '0.4rem', lineHeight: 1.2 }}>
-                                    {f.title}
-                                </div>
-                                <p style={{ fontSize: '0.75rem', color: 'var(--gv-text-sub)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
-                                    {f.description}
-                                </p>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            )}
         </div>
     );
 }

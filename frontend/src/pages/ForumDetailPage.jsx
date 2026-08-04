@@ -90,6 +90,34 @@ export default function ForumDetailPage() {
         }
     };
 
+    const handleReact = async (postId, emoji) => {
+        if (!currentUser?.id) {
+            alert('Please sign in to react.');
+            navigate('/auth');
+            return;
+        }
+        try {
+            const res = await apiFetch('/forums.php?action=react', {
+                method: 'POST',
+                body: { postId, userId: currentUser.id, reaction: emoji }
+            });
+            if (res) {
+                setPosts(prev => prev.map(p => {
+                    if (p.id === postId) {
+                        return {
+                            ...p,
+                            reactions: res.reactions || {},
+                            myReaction: res.myReaction
+                        };
+                    }
+                    return p;
+                }));
+            }
+        } catch (e) {
+            console.error('Failed to toggle reaction:', e);
+        }
+    };
+
     const handleToggleLock = async () => {
         if (currentUser?.role !== 'admin') return;
         try {
@@ -249,12 +277,12 @@ export default function ForumDetailPage() {
                                     {p.content}
                                 </p>
 
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
                                     <button 
                                         onClick={() => handleToggleLike(p.id)}
                                         style={{
-                                            background: p.isLiked ? 'rgba(233, 0, 82, 0.2)' : 'rgba(255, 255, 255, 0.05)',
-                                            border: `1px solid ${p.isLiked ? 'var(--gv-pink)' : 'var(--gv-card-border)'}`,
+                                            background: p.isLiked ? 'rgba(233, 0, 82, 0.15)' : 'rgba(255, 255, 255, 0.04)',
+                                            border: `1px solid ${p.isLiked ? 'var(--gv-pink)' : 'rgba(255, 255, 255, 0.08)'}`,
                                             color: p.isLiked ? 'var(--gv-pink)' : 'var(--gv-text-sub)',
                                             padding: '0.25rem 0.6rem',
                                             borderRadius: '20px',
@@ -263,11 +291,40 @@ export default function ForumDetailPage() {
                                             cursor: 'pointer',
                                             display: 'flex',
                                             alignItems: 'center',
-                                            gap: '0.3rem'
+                                            gap: '0.3rem',
+                                            transition: 'var(--transition)'
                                         }}
                                     >
-                                        <Heart size={13} fill={p.isLiked ? 'var(--gv-pink)' : 'none'} /> {p.likeCount || 0} Likes
+                                        <Heart size={12} fill={p.isLiked ? 'var(--gv-pink)' : 'none'} /> {p.likeCount || 0}
                                     </button>
+
+                                    {['👍', '🔥', '😮'].map(emoji => {
+                                        const count = (p.reactions && p.reactions[emoji]) || 0;
+                                        const isMine = p.myReaction === emoji;
+                                        return (
+                                            <button
+                                                key={emoji}
+                                                onClick={() => handleReact(p.id, emoji)}
+                                                style={{
+                                                    background: isMine ? 'rgba(0, 255, 135, 0.15)' : 'rgba(255, 255, 255, 0.04)',
+                                                    border: `1px solid ${isMine ? 'var(--gv-mint)' : 'rgba(255, 255, 255, 0.08)'}`,
+                                                    color: isMine ? 'var(--gv-mint)' : 'var(--gv-text-sub)',
+                                                    padding: '0.25rem 0.6rem',
+                                                    borderRadius: '20px',
+                                                    fontSize: '0.7rem',
+                                                    fontWeight: 800,
+                                                    cursor: 'pointer',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: '0.3rem',
+                                                    transition: 'var(--transition)'
+                                                }}
+                                            >
+                                                <span>{emoji}</span>
+                                                <span>{count}</span>
+                                            </button>
+                                        );
+                                    })}
                                 </div>
                             </div>
                         ))}
