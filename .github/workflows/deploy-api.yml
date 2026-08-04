@@ -1,0 +1,29 @@
+name: Deploy API to HostAfrica
+
+on:
+  push:
+    branches:
+      - main
+    # Only trigger the deployment if files in the 'api' folder change
+    paths:
+      - 'api/**'
+
+jobs:
+  web-deploy:
+    name: Deploy to HostAfrica via FTP
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+      
+    - name: Sync API files via FTP
+      uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+      with:
+        server: da27.host-ww.net
+        username: ${{ secrets.FTP_USERNAME }}
+        password: ${{ secrets.FTP_PASSWORD }}
+        # The local directory we want to upload (must end with /)
+        local-dir: ./api/
+        # The directory on the server where the files should go. 
+        # Note: Depending on your FTP user's root access, you may need to adjust this path.
+        server-dir: ./public_html/laravel_app/public/epldls/

@@ -4,15 +4,27 @@
    HostAfrica Subdomain: api.sokomtaa.co.ke
    ========================================================================== */
 
-// Database Credentials (Update with your HostAfrica MySQL Database details)
-define('DB_HOST', 'localhost');
-define('DB_NAME', 'sokomtaa_epldls');
-define('DB_USER', 'sokomtaa_epldls');
-define('DB_PASS', 'nakHrhyvEvVp5M886aQG');
+// Environment Detection
+$is_local = in_array($_SERVER['HTTP_HOST'] ?? '', ['localhost', '127.0.0.1', '::1']) || strpos($_SERVER['HTTP_HOST'] ?? '', 'localhost:') === 0;
+
+if ($is_local) {
+    // Local Database Credentials
+    define('DB_HOST', 'localhost');
+    define('DB_NAME', 'sokomtaa-epldls');
+    define('DB_USER', 'root');
+    define('DB_PASS', '');
+} else {
+    // Production Database Credentials (HostAfrica)
+    define('DB_HOST', 'localhost');
+    define('DB_NAME', 'sokomtaa_epldls');
+    define('DB_USER', 'sokomtaa_epldls');
+    define('DB_PASS', 'nakHrhyvEvVp5M886aQG');
+}
 
 // Allowed CORS Origins (Vercel domain and local testing)
 $allowed_origins = [
     'https://epldls.vercel.app',
+    'http://localhost:5173',
     'http://localhost:3000',
     'http://localhost',
     'http://127.0.0.1'
