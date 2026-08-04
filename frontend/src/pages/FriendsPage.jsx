@@ -20,14 +20,20 @@ export default function FriendsPage() {
     };
 
     const loadFriendsData = async () => {
-        if (!currentUser) return;
         try {
-            const data = await apiFetch(`/friends.php?action=list&userId=${currentUser.id}`);
-            if (data) {
-                setUsers(data.users || []);
-                setFriends(data.friends || []);
-                setIncomingRequests(data.incomingRequests || []);
-                setOutgoingRequests(data.outgoingRequests || []);
+            if (currentUser) {
+                const data = await apiFetch(`/friends.php?action=list&userId=${currentUser.id}`);
+                if (data) {
+                    setUsers(data.users || []);
+                    setFriends(data.friends || []);
+                    setIncomingRequests(data.incomingRequests || []);
+                    setOutgoingRequests(data.outgoingRequests || []);
+                }
+            } else {
+                const allUsers = await apiFetch('/users.php?action=list');
+                if (Array.isArray(allUsers)) {
+                    setUsers(allUsers);
+                }
             }
         } catch (e) {
             console.error('Failed to load friends:', e);
@@ -41,6 +47,10 @@ export default function FriendsPage() {
     }, [currentUser?.id]);
 
     const handleSendRequest = async (targetId) => {
+        if (!currentUser) {
+            navigate('/auth');
+            return;
+        }
         try {
             await apiFetch('/friends.php?action=request', {
                 method: 'POST',

@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { apiFetch } from '../utils/api';
 import { 
     MessageCircle, MessagesSquare, Gamepad2, Trophy, CalendarDays, Users, 
-    Radio, Clock, ArrowRight, Shirt, Search
+    Radio, Clock, ArrowRight, Shirt, Search, Sparkles, KeyRound, UserPlus, Flame, ShieldCheck, Zap
 } from 'lucide-react';
 
 export default function HomePage() {
@@ -13,6 +13,7 @@ export default function HomePage() {
 
     const [tournaments, setTournaments] = useState([]);
     const [fixtures, setFixtures] = useState([]);
+    const [forums, setForums] = useState([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
 
@@ -20,11 +21,13 @@ export default function HomePage() {
         let isMounted = true;
         Promise.all([
             apiFetch('/tournaments.php?action=list').catch(() => []),
-            apiFetch('/fixtures.php?action=list').catch(() => [])
-        ]).then(([tournData, fixData]) => {
+            apiFetch('/fixtures.php?action=list').catch(() => []),
+            apiFetch('/forums.php?action=list').catch(() => [])
+        ]).then(([tournData, fixData, forumData]) => {
             if (isMounted) {
                 if (Array.isArray(tournData)) setTournaments(tournData);
                 if (Array.isArray(fixData)) setFixtures(fixData);
+                if (Array.isArray(forumData)) setForums(forumData);
                 setLoading(false);
             }
         });
@@ -49,9 +52,9 @@ export default function HomePage() {
     };
 
     return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-            {/* Welcome Banner */}
-            {currentUser && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+            {/* Logged-in Welcome Banner or Guest World-Class Hero */}
+            {currentUser ? (
                 <div className="gv-card" style={{
                     background: 'linear-gradient(135deg, rgba(56,0,60,0.9), rgba(15,5,29,0.95))',
                     border: '1px solid rgba(0, 255, 135, 0.25)',
@@ -114,6 +117,66 @@ export default function HomePage() {
                         <button className="gv-btn gv-btn-secondary" onClick={() => navigate('/forums')} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
                             <MessagesSquare size={15} /> Community Forums
                         </button>
+                    </div>
+                </div>
+            ) : (
+                /* World-Class Guest Hero Banner */
+                <div className="gv-card" style={{
+                    background: 'radial-gradient(circle at top right, rgba(0, 255, 135, 0.15), rgba(56, 0, 60, 0.95) 60%), linear-gradient(135deg, rgba(15, 5, 29, 0.98), rgba(28, 10, 48, 0.95))',
+                    border: '1px solid rgba(0, 255, 135, 0.4)',
+                    boxShadow: '0 0 30px rgba(0, 255, 135, 0.15)',
+                    padding: '2rem 1.5rem',
+                    borderRadius: '16px',
+                    position: 'relative',
+                    overflow: 'hidden'
+                }}>
+                    <div style={{ position: 'relative', zIndex: 2, maxWidth: '800px' }}>
+                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.3rem 0.8rem', borderRadius: '20px', background: 'rgba(0, 255, 135, 0.12)', border: '1px solid var(--gv-mint)', color: 'var(--gv-mint)', fontSize: '0.75rem', fontWeight: 800, marginBottom: '1rem' }}>
+                            <Sparkles size={14} /> WELCOME TO GAMEVERSE HUB
+                        </div>
+                        <h1 style={{ fontSize: 'clamp(1.6rem, 4vw, 2.5rem)', fontWeight: 900, color: 'white', lineHeight: 1.15, marginBottom: '0.8rem', letterSpacing: '-0.5px' }}>
+                            The Ultimate <span style={{ color: 'var(--gv-mint)' }}>Multi-Game Arena</span> & Community Platform
+                        </h1>
+                        <p style={{ fontSize: '0.95rem', color: '#c4b5fd', lineHeight: 1.5, marginBottom: '1.5rem', fontWeight: 500 }}>
+                            Track live tournament scores, match fixtures, community forums, and player rosters for Dream League Soccer (DLS), eFootball, CoD Mobile, PUBG, and EA Sports FC in real-time.
+                        </p>
+
+                        {/* Live Platform Stats */}
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '0.75rem', marginBottom: '1.75rem' }}>
+                            <div style={{ background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.08)', padding: '0.6rem 0.8rem', borderRadius: '10px' }}>
+                                <div style={{ fontSize: '1.2rem', fontWeight: 900, color: 'var(--gv-mint)' }}>6+ Titles</div>
+                                <div style={{ fontSize: '0.65rem', color: 'var(--gv-text-sub)', fontWeight: 700 }}>Featured Games</div>
+                            </div>
+                            <div style={{ background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.08)', padding: '0.6rem 0.8rem', borderRadius: '10px' }}>
+                                <div style={{ fontSize: '1.2rem', fontWeight: 900, color: 'var(--gv-cyan)' }}>{tournaments.length} Active</div>
+                                <div style={{ fontSize: '0.65rem', color: 'var(--gv-text-sub)', fontWeight: 700 }}>Tournaments</div>
+                            </div>
+                            <div style={{ background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.08)', padding: '0.6rem 0.8rem', borderRadius: '10px' }}>
+                                <div style={{ fontSize: '1.2rem', fontWeight: 900, color: 'var(--gv-gold)' }}>{fixtures.length} Matches</div>
+                                <div style={{ fontSize: '0.65rem', color: 'var(--gv-text-sub)', fontWeight: 700 }}>Scheduled & Live</div>
+                            </div>
+                            <div style={{ background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.08)', padding: '0.6rem 0.8rem', borderRadius: '10px' }}>
+                                <div style={{ fontSize: '1.2rem', fontWeight: 900, color: 'var(--gv-pink)' }}>{forums.length} Threads</div>
+                                <div style={{ fontSize: '0.65rem', color: 'var(--gv-text-sub)', fontWeight: 700 }}>Community Discussions</div>
+                            </div>
+                        </div>
+
+                        <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                            <button 
+                                className="gv-btn gv-btn-primary"
+                                onClick={() => navigate('/auth')}
+                                style={{ padding: '0.65rem 1.4rem', fontSize: '0.9rem', display: 'inline-flex', alignItems: 'center', gap: '0.5rem', boxShadow: '0 0 20px var(--gv-mint-glow)' }}
+                            >
+                                <KeyRound size={16} /> Enter Arena / Sign In
+                            </button>
+                            <button 
+                                className="gv-btn gv-btn-secondary"
+                                onClick={() => navigate('/auth')}
+                                style={{ padding: '0.65rem 1.4rem', fontSize: '0.9rem', display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}
+                            >
+                                <UserPlus size={16} /> Register Gamer Handle
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}
@@ -290,6 +353,55 @@ export default function HomePage() {
                     </div>
                 )}
             </div>
+
+            {/* Community Discussions Preview */}
+            {forums.length > 0 && (
+                <div className="gv-card">
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                        <h3 style={{ fontSize: '1rem', fontWeight: 900, color: 'white', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <MessagesSquare size={18} style={{ color: 'var(--gv-pink)' }} /> Active Community Discussions
+                        </h3>
+                        <button 
+                            onClick={() => navigate('/forums')}
+                            style={{ background: 'none', border: 'none', color: 'var(--gv-pink)', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}
+                        >
+                            View All Forums ({forums.length}) <ArrowRight size={14} />
+                        </button>
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '0.75rem' }}>
+                        {forums.slice(0, 3).map(f => (
+                            <div 
+                                key={f.id}
+                                onClick={() => navigate(`/forums/${f.id}`)}
+                                style={{
+                                    background: 'rgba(0, 0, 0, 0.4)',
+                                    border: '1px solid rgba(255, 255, 255, 0.08)',
+                                    borderRadius: '10px',
+                                    padding: '0.9rem',
+                                    cursor: 'pointer',
+                                    transition: 'var(--transition)'
+                                }}
+                            >
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.4rem' }}>
+                                    <span className="gv-badge gv-badge-pink" style={{ fontSize: '0.65rem' }}>
+                                        {f.gameName || 'General'}
+                                    </span>
+                                    <span style={{ fontSize: '0.7rem', color: 'var(--gv-text-muted)' }}>
+                                        by {f.authorName || 'Gamer'}
+                                    </span>
+                                </div>
+                                <div style={{ fontSize: '0.9rem', fontWeight: 800, color: 'white', marginBottom: '0.4rem', lineHeight: 1.2 }}>
+                                    {f.title}
+                                </div>
+                                <p style={{ fontSize: '0.75rem', color: 'var(--gv-text-sub)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+                                    {f.description}
+                                </p>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

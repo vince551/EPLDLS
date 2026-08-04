@@ -4,9 +4,6 @@ import { useAuth } from '../context/AuthContext';
 import { Home, Gamepad2, MessageCircle, MessagesSquare, User, LayoutDashboard } from 'lucide-react';
 
 export default function MobileNav() {
-    const { currentUser, unreadChatCount } = useAuth();
-    if (!currentUser) return null;
-
     return (
         <nav style={{
             position: 'fixed',
@@ -29,33 +26,48 @@ export default function MobileNav() {
                 <Gamepad2 size={20} />
                 <span>Games</span>
             </NavLink>
-            <NavLink to="/chat" className={({ isActive }) => `m-nav-item ${isActive ? 'active' : ''}`} style={{ position: 'relative' }}>
-                <MessageCircle size={20} />
-                <span>Chat</span>
-                {unreadChatCount > 0 && (
-                    <span className="unread-badge" style={{
-                        position: 'absolute',
-                        top: '2px',
-                        right: '12px'
-                    }}>
-                        {unreadChatCount}
-                    </span>
-                )}
-            </NavLink>
-            <NavLink to="/forums" className={({ isActive }) => `m-nav-item ${isActive ? 'active' : ''}`}>
-                <MessagesSquare size={20} />
-                <span>Forums</span>
-            </NavLink>
-            <NavLink to="/profile" className={({ isActive }) => `m-nav-item ${isActive ? 'active' : ''}`}>
-                <User size={20} />
-                <span>Profile</span>
-            </NavLink>
 
-            {currentUser.role === 'admin' && (
-                <NavLink to="/admin" className={({ isActive }) => `m-nav-item ${isActive ? 'active' : ''}`}>
-                    <LayoutDashboard size={20} />
-                    <span>Admin</span>
-                </NavLink>
+            {currentUser ? (
+                <>
+                    <NavLink to="/chat" className={({ isActive }) => `m-nav-item ${isActive ? 'active' : ''}`} style={{ position: 'relative' }}>
+                        <MessageCircle size={20} />
+                        <span>Chat</span>
+                        {unreadChatCount > 0 && (
+                            <span className="unread-badge" style={{
+                                position: 'absolute',
+                                top: '2px',
+                                right: '12px'
+                            }}>
+                                {unreadChatCount}
+                            </span>
+                        )}
+                    </NavLink>
+                    <NavLink to="/forums" className={({ isActive }) => `m-nav-item ${isActive ? 'active' : ''}`}>
+                        <MessagesSquare size={20} />
+                        <span>Forums</span>
+                    </NavLink>
+                    <NavLink to="/profile" className={({ isActive }) => `m-nav-item ${isActive ? 'active' : ''}`}>
+                        <User size={20} />
+                        <span>Profile</span>
+                    </NavLink>
+                    {currentUser.role === 'admin' && (
+                        <NavLink to="/admin" className={({ isActive }) => `m-nav-item ${isActive ? 'active' : ''}`}>
+                            <LayoutDashboard size={20} />
+                            <span>Admin</span>
+                        </NavLink>
+                    )}
+                </>
+            ) : (
+                <>
+                    <NavLink to="/forums" className={({ isActive }) => `m-nav-item ${isActive ? 'active' : ''}`}>
+                        <MessagesSquare size={20} />
+                        <span>Forums</span>
+                    </NavLink>
+                    <NavLink to="/auth" className={({ isActive }) => `m-nav-item ${isActive ? 'active' : ''}`}>
+                        <User size={20} />
+                        <span>Sign In</span>
+                    </NavLink>
+                </>
             )}
 
             <style>{`

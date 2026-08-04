@@ -41,7 +41,7 @@ function MainLayout() {
                     <Route path="/games" element={<GamesPage />} />
                     <Route path="/tournaments" element={<TournamentsPage />} />
                     <Route path="/fixtures" element={<FixturesPage />} />
-                    <Route path="/friends" element={<ProtectedRoute><FriendsPage /></ProtectedRoute>} />
+                    <Route path="/friends" element={<FriendsPage />} />
                     <Route path="/chat" element={<ProtectedRoute><ChatPage /></ProtectedRoute>} />
                     <Route path="/forums" element={<ForumsPage />} />
                     <Route path="/forums/:id" element={<ForumDetailPage />} />

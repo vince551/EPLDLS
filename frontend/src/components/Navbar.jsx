@@ -10,8 +10,6 @@ export default function Navbar() {
     const { currentUser, logout, unreadChatCount } = useAuth();
     const navigate = useNavigate();
 
-    if (!currentUser) return null;
-
     return (
         <nav style={{
             background: 'rgba(15, 5, 29, 0.9)',
@@ -36,48 +34,63 @@ export default function Navbar() {
                 <CalendarDays size={15} /> Fixtures
             </NavLink>
             <NavLink to="/friends" className={({ isActive }) => `gv-nav-link ${isActive ? 'active' : ''}`}>
-                <Users size={15} /> Players
-            </NavLink>
-            <NavLink to="/chat" className={({ isActive }) => `gv-nav-link ${isActive ? 'active' : ''}`} style={{ position: 'relative' }}>
-                <MessageCircle size={15} /> Direct Chat
-                {unreadChatCount > 0 && (
-                    <span className="unread-badge" style={{ marginLeft: '4px' }}>
-                        {unreadChatCount}
-                    </span>
-                )}
+                <Users size={15} /> Gamers
             </NavLink>
             <NavLink to="/forums" className={({ isActive }) => `gv-nav-link ${isActive ? 'active' : ''}`}>
                 <MessagesSquare size={15} /> Forums
             </NavLink>
-            <NavLink to="/profile" className={({ isActive }) => `gv-nav-link ${isActive ? 'active' : ''}`}>
-                <User size={15} /> Profile
-            </NavLink>
 
-            {currentUser.role === 'admin' && (
-                <NavLink to="/admin" className={({ isActive }) => `gv-nav-link admin ${isActive ? 'active' : ''}`}>
-                    <LayoutDashboard size={15} /> Admin Panel
-                </NavLink>
+            {currentUser ? (
+                <>
+                    <NavLink to="/chat" className={({ isActive }) => `gv-nav-link ${isActive ? 'active' : ''}`} style={{ position: 'relative' }}>
+                        <MessageCircle size={15} /> Direct Chat
+                        {unreadChatCount > 0 && (
+                            <span className="unread-badge" style={{ marginLeft: '4px' }}>
+                                {unreadChatCount}
+                            </span>
+                        )}
+                    </NavLink>
+                    <NavLink to="/profile" className={({ isActive }) => `gv-nav-link ${isActive ? 'active' : ''}`}>
+                        <User size={15} /> Profile
+                    </NavLink>
+
+                    {currentUser.role === 'admin' && (
+                        <NavLink to="/admin" className={({ isActive }) => `gv-nav-link admin ${isActive ? 'active' : ''}`}>
+                            <LayoutDashboard size={15} /> Admin Panel
+                        </NavLink>
+                    )}
+
+                    <button 
+                        onClick={() => { logout(); navigate('/auth'); }}
+                        style={{
+                            marginLeft: 'auto',
+                            background: 'rgba(233, 0, 82, 0.12)',
+                            border: '1px solid rgba(233, 0, 82, 0.3)',
+                            color: 'var(--gv-pink)',
+                            padding: '0.35rem 0.8rem',
+                            borderRadius: '8px',
+                            fontWeight: 700,
+                            fontSize: '0.75rem',
+                            cursor: 'pointer',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '0.3rem'
+                        }}
+                    >
+                        <LogOut size={14} /> Logout
+                    </button>
+                </>
+            ) : (
+                <div style={{ marginLeft: 'auto', display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                    <button 
+                        onClick={() => navigate('/auth')}
+                        className="gv-btn gv-btn-primary"
+                        style={{ padding: '0.4rem 1rem', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+                    >
+                        Sign In / Register <Trophy size={14} />
+                    </button>
+                </div>
             )}
-
-            <button 
-                onClick={() => { logout(); navigate('/auth'); }}
-                style={{
-                    marginLeft: 'auto',
-                    background: 'rgba(233, 0, 82, 0.12)',
-                    border: '1px solid rgba(233, 0, 82, 0.3)',
-                    color: 'var(--gv-pink)',
-                    padding: '0.35rem 0.8rem',
-                    borderRadius: '8px',
-                    fontWeight: 700,
-                    fontSize: '0.75rem',
-                    cursor: 'pointer',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '0.3rem'
-                }}
-            >
-                <LogOut size={14} /> Logout
-            </button>
 
             <style>{`
                 .gv-nav-link {
