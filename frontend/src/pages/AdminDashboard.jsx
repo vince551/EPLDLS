@@ -8,6 +8,7 @@ export default function AdminDashboard() {
     const { currentUser, games, setGames } = useAuth();
     const navigate = useNavigate();
     const fixtureFormRef = useRef(null);
+    const hasInitializedForm = useRef(false);
 
     const [users, setUsers] = useState([]);
     const [tournaments, setTournaments] = useState([]);
@@ -55,21 +56,18 @@ export default function AdminDashboard() {
             if (Array.isArray(tData)) setTournaments(tData);
             if (Array.isArray(fData)) setFixtures(fData);
             if (Array.isArray(gData)) setGames(gData);
+
+            // Initialize form only on first load
+            if (!hasInitializedForm.current && tData.length > 0 && uData.length >= 2) {
+                setFixTournId(tData[0].id);
+                setFixHome(uData[0].team);
+                setFixAway(uData[1].team);
+                hasInitializedForm.current = true;
+            }
         } catch (e) {
             console.error('Failed to load admin data:', e);
         }
     };
-
-    // Initialize form defaults on component mount
-    useEffect(() => {
-        if (tournaments.length > 0 && fixTournId === 0) {
-            setFixTournId(tournaments[0].id);
-        }
-        if (users.length >= 2 && !fixHome && !fixAway) {
-            setFixHome(users[0].team);
-            setFixAway(users[1].team);
-        }
-    }, [tournaments, users]);
 
     useEffect(() => {
         if (currentUser && currentUser.role !== 'admin') {
