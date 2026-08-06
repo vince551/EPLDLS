@@ -24,7 +24,7 @@ export default function AdminDashboard() {
     const [newTournRules, setNewTournRules] = useState('');
 
     const [editingFixtureId, setEditingFixtureId] = useState(null);
-    const [fixTournId, setFixTournId] = useState('');
+    const [fixTournId, setFixTournId] = useState(0);
     const [fixHome, setFixHome] = useState('');
     const [fixAway, setFixAway] = useState('');
     const [fixDate, setFixDate] = useState('');
@@ -32,18 +32,14 @@ export default function AdminDashboard() {
     const [scores, setScores] = useState({});
 
     const [broadcastText, setBroadcastText] = useState('');
-    const [isEditingForm, setIsEditingForm] = useState(false);
 
-    const resetFixtureForm = (uData = users, tData = tournaments) => {
+    const resetFixtureForm = () => {
         setEditingFixtureId(null);
-        setIsEditingForm(false);
+        setFixTournId(0);
+        setFixHome('');
+        setFixAway('');
         setFixDate('');
         setFixTime('');
-        if (tData.length > 0) setFixTournId(tData[0].id);
-        if (uData.length >= 2) {
-            setFixHome(uData[0].team);
-            setFixAway(uData[1].team);
-        }
     };
 
     const loadAdminData = async () => {
@@ -59,19 +55,21 @@ export default function AdminDashboard() {
             if (Array.isArray(tData)) setTournaments(tData);
             if (Array.isArray(fData)) setFixtures(fData);
             if (Array.isArray(gData)) setGames(gData);
-
-            // Only reset form if not currently editing the form
-            if (!isEditingForm && !editingFixtureId) {
-                if (tData.length > 0) setFixTournId(tData[0].id);
-                if (uData.length >= 2) {
-                    setFixHome(uData[0].team);
-                    setFixAway(uData[1].team);
-                }
-            }
         } catch (e) {
             console.error('Failed to load admin data:', e);
         }
     };
+
+    // Initialize form defaults on component mount
+    useEffect(() => {
+        if (tournaments.length > 0 && fixTournId === 0) {
+            setFixTournId(tournaments[0].id);
+        }
+        if (users.length >= 2 && !fixHome && !fixAway) {
+            setFixHome(users[0].team);
+            setFixAway(users[1].team);
+        }
+    }, [tournaments, users]);
 
     useEffect(() => {
         if (currentUser && currentUser.role !== 'admin') {
@@ -79,7 +77,7 @@ export default function AdminDashboard() {
             return;
         }
         loadAdminData();
-    }, [currentUser?.id]); // Only re-run when user changes
+    }, [currentUser?.id]);
 
     // Add Game
     const handleAddGame = async (e) => {
@@ -312,10 +310,10 @@ export default function AdminDashboard() {
                             {tournaments.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
                         </select>
                         <div className="admin-form-row" style={{ display: 'flex', gap: '0.5rem' }}>
-                            <select className="gv-input" value={fixHome} onChange={e => { setFixHome(e.target.value); setIsEditingForm(true); }}>
+                            <select className="gv-input" value={fixHome} onChange={e => setFixHome(e.target.value)}>
                                 {users.map(u => <option key={u.id} value={u.team}>{u.team} ({u.name})</option>)}
                             </select>
-                            <select className="gv-input" value={fixAway} onChange={e => { setFixAway(e.target.value); setIsEditingForm(true); }}>
+                            <select className="gv-input" value={fixAway} onChange={e => setFixAway(e.target.value)}>
                                 {users.map(u => <option key={u.id} value={u.team}>{u.team} ({u.name})</option>)}
                             </select>
                         </div>
