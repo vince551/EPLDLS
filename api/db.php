@@ -131,4 +131,3 @@ function getJsonInput() {
     $rawInput = file_get_contents('php://input');
     return json_decode($rawInput, true) ?? [];
 }
-

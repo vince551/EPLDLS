@@ -129,15 +129,31 @@ export default function ChatPage() {
         const friendId = friendIdOverride ?? activeFriendIdRef.current;
         if (!currentUser?.id || !friendId) return [];
         try {
-            const payload = await apiFetch(`/messages.php?action=list&user_id=${currentUser.id}&friend_id=${friendId}`);
+            const url = `/messages.php?action=list&user_id=${currentUser.id}&friend_id=${friendId}`;
+            const payload = await apiFetch(url);
             const msgs = normalizeMessagesPayload(payload);
+            console.debug('ChatPage.fetchMessages:', { url, friendId, userId: currentUser.id, returnedCount: Array.isArray(msgs) ? msgs.length : 0, payload });
             if (Array.isArray(msgs)) {
                 setMessages(prev => mergeMessages(prev, msgs));
                 return msgs;
             }
+            // Fallback: if API returned no messages but we have a conversation preview, show the last message
+            const conv = conversations.find(c => c.id === friendId);
+            if (conv && conv.lastMessage) {
+                const synthetic = [{
+                    id: Date.now() * -1,
+                    senderId: conv.lastMessageIsMine ? currentUser.id : conv.id,
+                    receiverId: conv.lastMessageIsMine ? conv.id : currentUser.id,
+                    message: conv.lastMessage,
+                    isRead: !!conv.lastMessageIsRead,
+                    timestamp: conv.lastMessageTime || new Date().toISOString().slice(0, 19).replace('T', ' ')
+                }];
+                setMessages(synthetic);
+                return synthetic;
+            }
             return [];
         } catch (e) {
-            console.error('Failed to fetch messages:', e);
+            console.error('Failed to fetch messages for friendId', friendId, e);
             return [];
         } finally {
             if (!silent) setLoadingMsgs(false);
