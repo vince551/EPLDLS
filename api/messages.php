@@ -42,7 +42,9 @@ try {
             $m['replyToSenderId'] = $m['replyToSenderId'] !== null ? (int)$m['replyToSenderId'] : null;
             if ($m['replyToMessageRaw']) {
                 $raw = $m['replyToMessageRaw'];
-                $m['replyToMessage'] = mb_strlen($raw) > 80 ? mb_substr($raw, 0, 80) . '…' : $raw;
+                // Safe truncation using built-in string functions
+                $len = function_exists('mb_strlen') ? mb_strlen($raw) : strlen($raw);
+                $m['replyToMessage'] = $len > 80 ? (function_exists('mb_substr') ? mb_substr($raw, 0, 80) : substr($raw, 0, 80)) . '…' : $raw;
             } else {
                 $m['replyToMessage'] = null;
             }
@@ -176,7 +178,9 @@ try {
                     jsonResponse(['error' => 'Reply target is not part of this conversation.'], 400);
                 }
                 $raw = $parent['message'];
-                $replyToMessage = mb_strlen($raw) > 80 ? mb_substr($raw, 0, 80) . '…' : $raw;
+                // Safe truncation using built-in string functions
+                $len = function_exists('mb_strlen') ? mb_strlen($raw) : strlen($raw);
+                $replyToMessage = $len > 80 ? (function_exists('mb_substr') ? mb_substr($raw, 0, 80) : substr($raw, 0, 80)) . '…' : $raw;
                 $replyToSenderName = $parent['senderName'];
                 $replyToSenderId = $ps;
             }
@@ -239,10 +243,10 @@ try {
     jsonResponse(['error' => 'Invalid action or request method.'], 400);
 
 } catch (Throwable $t) {
-    // Log the exception for server-side debugging and return JSON error
+    // Log the exception for server-side debugging and return generic JSON error
     error_log("[messages.php] Exception: " . $t->getMessage() . " in " . $t->getFile() . ":" . $t->getLine());
     http_response_code(500);
     header('Content-Type: application/json');
-    echo json_encode(['error' => 'Server error', 'details' => $t->getMessage()]);
+    echo json_encode(['error' => 'Server error']);
     exit();
 }

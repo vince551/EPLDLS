@@ -44,6 +44,9 @@ CREATE TABLE IF NOT EXISTS `tournaments` (
     `name` VARCHAR(150) NOT NULL,
     `rules` TEXT,
     `bg_image` TEXT,
+    `tournament_type` ENUM('league', 'knockout', 'group_knockout') DEFAULT 'knockout' COMMENT 'league: round-robin, knockout: direct elimination, group_knockout: groups then knockout',
+    `status` ENUM('draft', 'group_stage', 'knockout_stage', 'completed') DEFAULT 'draft',
+    `current_round` VARCHAR(50) DEFAULT NULL COMMENT 'e.g., GROUP_STAGE, RO16, QUARTERFINAL, SEMIFINAL, FINAL',
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (`game_id`) REFERENCES `games`(`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -60,8 +63,14 @@ CREATE TABLE IF NOT EXISTS `fixtures` (
     `played` TINYINT(1) DEFAULT 0,
     `home_score` INT DEFAULT NULL,
     `away_score` INT DEFAULT NULL,
+    `stage` VARCHAR(50) DEFAULT 'GROUP_STAGE' COMMENT 'GROUP_STAGE, RO16, QUARTERFINAL, SEMIFINAL, FINAL',
+    `group_name` VARCHAR(50) DEFAULT NULL COMMENT 'e.g., Group A, Group B (for group stage)',
+    `bracket_position` INT DEFAULT NULL COMMENT 'bracket position for knockout stages',
+    `next_fixture_id` INT DEFAULT NULL COMMENT 'fixture_id of next round match this winner feeds into',
+    `winner_slot` ENUM('home', 'away', NULL) DEFAULT NULL COMMENT 'which team slot (home/away) in next_fixture_id',
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (`tourn_id`) REFERENCES `tournaments`(`id`) ON DELETE CASCADE
+    FOREIGN KEY (`tourn_id`) REFERENCES `tournaments`(`id`) ON DELETE CASCADE,
+    FOREIGN KEY (`next_fixture_id`) REFERENCES `fixtures`(`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- 5. Friends Connections Table
@@ -140,18 +149,27 @@ CREATE TABLE IF NOT EXISTS `forum_post_likes` (
     UNIQUE KEY `unique_post_user_like` (`post_id`, `user_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- 11. Forum Post Emoji Reactions Table
--- Run this on existing databases: (schema.sql handles new installs automatically)
-CREATE TABLE IF NOT EXISTS `forum_post_reactions` (
+-- 12. Tournament Standings Table (for group stages and league)
+CREATE TABLE IF NOT EXISTS `tournament_standings` (
     `id` INT AUTO_INCREMENT PRIMARY KEY,
-    `post_id` INT NOT NULL,
-    `user_id` INT NOT NULL,
-    `reaction` VARCHAR(10) NOT NULL COMMENT 'Emoji: 👍 🔥 😮',
+    `tourn_id` INT NOT NULL,
+    `team_name` VARCHAR(100) NOT NULL,
+    `group_name` VARCHAR(50) DEFAULT NULL COMMENT 'Group A, B, etc for group stage',
+    `played` INT DEFAULT 0,
+    `wins` INT DEFAULT 0,
+    `draws` INT DEFAULT 0,
+    `losses` INT DEFAULT 0,
+    `goals_for` INT DEFAULT 0,
+    `goals_against` INT DEFAULT 0,
+    `goal_difference` INT GENERATED ALWAYS AS (goals_for - goals_against) STORED,
+    `points` INT GENERATED ALWAYS AS (wins * 3 + draws * 1) STORED,
+    `qualified_to_knockout` TINYINT(1) DEFAULT 0,
+    `position_in_knockout` INT DEFAULT NULL COMMENT 'position number in knockout bracket',
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (`post_id`) REFERENCES `forum_posts`(`id`) ON DELETE CASCADE,
-    FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE,
-    UNIQUE KEY `unique_post_user_reaction` (`post_id`, `user_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY `tournament_team_group` (`tourn_id`, `team_name`, `group_name`),
+    FOREIGN KEY (`tourn_id`) REFERENCES `tournaments`(`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ==========================================================================
 -- SEED INITIAL DATA
@@ -173,7 +191,37 @@ INSERT INTO `users` (`id`, `username`, `name`, `team`, `pass`, `role`, `online`,
 VALUES 
 (1, 'admin', 'Admin', 'System HQ', '$2y$10$E9qYkKkZ88M2Z9.1gV9hEuK9V1E6eLz7eX.6v7R.7M7a7.7.7.7', 'admin', 1, 'status-online', '', 'System Administrator & Tournament Host', 'DLS', 1),
 (2, 'alexmercer', 'Alex Mercer', 'Shadow Strikers', '$2y$10$E9qYkKkZ88M2Z9.1gV9hEuK9V1E6eLz7eX.6v7R.7M7a7.7.7.7', 'user', 0, 'status-offline', '', 'Competitive DLS & CoD player', 'DLS', 0),
-(3, 'johndoe', 'John Doe', 'Red Dragons', '$2y$10$E9qYkKkZ88M2Z9.1gV9hEuK9V1E6eLz7eX.6v7R.7M7a7.7.7.7', 'user', 0, 'status-offline', '', 'PUBG & eFootball enthusiast', 'eFootball', 0)
+(3, 'johndoe', 'John Doe', 'Red Dragons', '$2y$10$E9qYkKkZ88M2Z9.1gV9hEuK9V1E6eLz7eX.6v7R.7M7a7.7.7.7', 'user', 0, 'status-offline', '', 'PUBG & eFootball enthusiast', 'eFootball', 0),
+(4, 'mastermind', 'Mastermind', 'Elite Squad', '$2y$10$E9qYkKkZ88M2Z9.1gV9hEuK9V1E6eLz7eX.6v7R.7M7a7.7.7.7', 'user', 1, 'status-online', '', 'Strategic gamer & tournament organizer', 'DLS', 0),
+(5, 'visca', 'Visca', 'Blue Force', '$2y$10$E9qYkKkZ88M2Z9.1gV9hEuK9V1E6eLz7eX.6v7R.7M7a7.7.7.7', 'user', 0, 'status-offline', '', 'Casual player exploring all games', 'PUBG', 0)
+ON DUPLICATE KEY UPDATE `id`=`id`;
+
+-- Seed Friend Connections (for testing chat)
+INSERT INTO `friends` (`id`, `user_id`, `friend_id`, `status`)
+VALUES 
+(1, 1, 2, 'accepted'),
+(2, 1, 4, 'accepted'),
+(3, 2, 4, 'accepted'),
+(4, 2, 5, 'accepted'),
+(5, 4, 1, 'accepted'),
+(6, 4, 2, 'accepted'),
+(7, 5, 2, 'accepted')
+ON DUPLICATE KEY UPDATE `id`=`id`;
+
+-- Seed Sample Messages (for testing chat display)
+INSERT INTO `messages` (`id`, `sender_id`, `receiver_id`, `message`, `reply_to_id`, `is_read`, `sent_at`)
+VALUES 
+(1, 1, 4, 'Hey Mastermind! How are you doing today?', NULL, 1, DATE_SUB(NOW(), INTERVAL 30 MINUTE)),
+(2, 4, 1, 'Hey Admin! Doing great, just preparing for the tournament.', NULL, 1, DATE_SUB(NOW(), INTERVAL 28 MINUTE)),
+(3, 1, 4, 'That sounds awesome! Let me know if you need any help with setup.', NULL, 1, DATE_SUB(NOW(), INTERVAL 25 MINUTE)),
+(4, 4, 1, 'Thanks! I will definitely reach out. What game mode are we focusing on?', 3, 1, DATE_SUB(NOW(), INTERVAL 20 MINUTE)),
+(5, 1, 4, 'DLS Season 26 mainly, but we could add eFootball too.', NULL, 1, DATE_SUB(NOW(), INTERVAL 18 MINUTE)),
+(6, 2, 4, 'Mastermind, are you up for the friendly match tomorrow?', NULL, 0, DATE_SUB(NOW(), INTERVAL 15 MINUTE)),
+(7, 4, 2, 'Yeah, I am in! What time works for you?', NULL, 0, DATE_SUB(NOW(), INTERVAL 12 MINUTE)),
+(8, 2, 4, 'How about 8 PM? My usual time.', NULL, 0, DATE_SUB(NOW(), INTERVAL 10 MINUTE)),
+(9, 4, 2, 'Perfect! See you then. Let''s make it competitive!', NULL, 0, DATE_SUB(NOW(), INTERVAL 8 MINUTE)),
+(10, 2, 5, 'Hey Visca! New to the community?', NULL, 0, DATE_SUB(NOW(), INTERVAL 5 MINUTE)),
+(11, 5, 2, 'Yes! Just joined yesterday. Looking forward to playing with everyone!', NULL, 0, DATE_SUB(NOW(), INTERVAL 2 MINUTE))
 ON DUPLICATE KEY UPDATE `id`=`id`;
 
 -- Seed Sample Tournament with game_id=1 (DLS)

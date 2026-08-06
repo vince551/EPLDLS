@@ -51,10 +51,26 @@ function ensureSchema($pdo) {
         $tournCols = $pdo->query("SHOW COLUMNS FROM `tournaments`")->fetchAll(PDO::FETCH_COLUMN);
         if (!in_array('game_id', $tournCols)) $pdo->exec("ALTER TABLE `tournaments` ADD COLUMN `game_id` INT DEFAULT 1");
 
-        // Add is_read, read_at to messages
+        // Add is_read, read_at, reply_to_id to messages
         $msgCols = $pdo->query("SHOW COLUMNS FROM `messages`")->fetchAll(PDO::FETCH_COLUMN);
-        if (!in_array('is_read', $msgCols)) $pdo->exec("ALTER TABLE `messages` ADD COLUMN `is_read` TINYINT(1) DEFAULT 0");
-        if (!in_array('read_at', $msgCols)) $pdo->exec("ALTER TABLE `messages` ADD COLUMN `read_at` TIMESTAMP NULL DEFAULT NULL");
+        if (!in_array('is_read', $msgCols)) {
+            try {
+                $pdo->exec("ALTER TABLE `messages` ADD COLUMN `is_read` TINYINT(1) DEFAULT 0");
+            } catch (Exception $e) {}
+        }
+        if (!in_array('read_at', $msgCols)) {
+            try {
+                $pdo->exec("ALTER TABLE `messages` ADD COLUMN `read_at` TIMESTAMP NULL DEFAULT NULL");
+            } catch (Exception $e) {}
+        }
+        if (!in_array('reply_to_id', $msgCols)) {
+            try {
+                $pdo->exec("ALTER TABLE `messages` ADD COLUMN `reply_to_id` INT NULL DEFAULT NULL");
+            } catch (Exception $e) {}
+            try {
+                $pdo->exec("ALTER TABLE `messages` ADD CONSTRAINT `fk_reply_to` FOREIGN KEY (`reply_to_id`) REFERENCES `messages`(`id`) ON DELETE SET NULL");
+            } catch (Exception $e) {}
+        }
 
         // Create forums table
         $pdo->exec("CREATE TABLE IF NOT EXISTS `forums` (
