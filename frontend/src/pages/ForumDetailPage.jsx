@@ -1,26 +1,34 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { apiFetch } from '../utils/api';
 import { 
     ArrowLeft, Pin, Lock, MessageCircle, Heart, Trash2, Send, 
-    Shield, Shirt, ArrowRight
+    Shield, Shirt, ArrowRight, Reply, X
 } from 'lucide-react';
 
 export default function ForumDetailPage() {
     const { id } = useParams();
     const { currentUser } = useAuth();
     const navigate = useNavigate();
+    const composerRef = useRef(null);
+    const postRefs = useRef({});
 
     const [forum, setForum] = useState(null);
     const [posts, setPosts] = useState([]);
     const [replyContent, setReplyContent] = useState('');
+    const [replyingTo, setReplyingTo] = useState(null);
     const [loading, setLoading] = useState(true);
     const [replyLoading, setReplyLoading] = useState(false);
 
     const getInitials = (name) => {
         if (!name) return '?';
         return name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
+    };
+
+    const truncate = (text, n = 80) => {
+        if (!text) return '';
+        return text.length > n ? text.slice(0, n) + '…' : text;
     };
 
     const fetchThread = async () => {
@@ -41,25 +49,48 @@ export default function ForumDetailPage() {
         fetchThread();
     }, [id, currentUser?.id]);
 
+    const scrollToPost = (postId) => {
+        const el = postRefs.current[postId];
+        if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            el.classList.add('reply-highlight');
+            setTimeout(() => el.classList.remove('reply-highlight'), 1200);
+        }
+    };
+
+    const handleStartReplyTo = (post) => {
+        if (!currentUser) {
+            alert('Please sign in to reply.');
+            navigate('/auth');
+            return;
+        }
+        setReplyingTo(post);
+        composerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    };
+
     const handleReplySubmit = async (e) => {
         e.preventDefault();
         if (!replyContent.trim() || !currentUser?.id) return;
         setReplyLoading(true);
 
         try {
+            const body = {
+                forumId: parseInt(id),
+                userId: currentUser.id,
+                content: replyContent.trim()
+            };
+            if (replyingTo?.id) body.replyToId = replyingTo.id;
+
             const res = await apiFetch('/posts.php?action=create', {
                 method: 'POST',
-                body: {
-                    forumId: parseInt(id),
-                    userId: currentUser.id,
-                    content: replyContent.trim()
-                }
+                body
             });
 
             if (res.post) {
                 setPosts(prev => [...prev, res.post]);
             }
             setReplyContent('');
+            setReplyingTo(null);
         } catch (err) {
             alert(err.message || 'Failed to submit reply.');
         } finally {
@@ -179,7 +210,6 @@ export default function ForumDetailPage() {
                 <ArrowLeft size={14} /> Back to All Forums
             </button>
 
-            {/* Forum Header Card */}
             <div className="gv-card">
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '0.75rem' }}>
                     <div>
@@ -193,9 +223,8 @@ export default function ForumDetailPage() {
                         </h1>
                     </div>
 
-                    {/* Admin Moderation Controls */}
                     {currentUser?.role === 'admin' && (
-                        <div style={{ display: 'flex', gap: '0.4rem' }}>
+                        <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
                             <button className="gv-btn gv-btn-secondary" style={{ padding: '0.35rem 0.6rem', fontSize: '0.7rem', display: 'inline-flex', alignItems: 'center', gap: '0.2rem' }} onClick={handleTogglePin}>
                                 <Pin size={12} /> {forum.isPinned ? 'Unpin' : 'Pin'}
                             </button>
@@ -220,7 +249,6 @@ export default function ForumDetailPage() {
                 </div>
             </div>
 
-            {/* Replies Section */}
             <div className="gv-card">
                 <h3 style={{ fontSize: '1rem', fontWeight: 900, color: 'white', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                     <MessageCircle size={18} /> Replies ({posts.length})
@@ -233,12 +261,16 @@ export default function ForumDetailPage() {
                 ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
                         {posts.map(p => (
-                            <div key={p.id} style={{
-                                background: 'rgba(0, 0, 0, 0.4)',
-                                border: '1px solid rgba(255, 255, 255, 0.08)',
-                                borderRadius: '10px',
-                                padding: '0.85rem 1rem'
-                            }}>
+                            <div
+                                key={p.id}
+                                ref={(el) => { postRefs.current[p.id] = el; }}
+                                style={{
+                                    background: 'rgba(0, 0, 0, 0.4)',
+                                    border: '1px solid rgba(255, 255, 255, 0.08)',
+                                    borderRadius: '10px',
+                                    padding: '0.85rem 1rem'
+                                }}
+                            >
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
                                         {p.authorPic ? (
@@ -272,6 +304,18 @@ export default function ForumDetailPage() {
                                         {new Date(p.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                     </span>
                                 </div>
+
+                                {p.replyToId && (
+                                    <button
+                                        type="button"
+                                        className="reply-quote"
+                                        style={{ marginBottom: '0.5rem', width: '100%', textAlign: 'left' }}
+                                        onClick={() => scrollToPost(p.replyToId)}
+                                    >
+                                        <span className="reply-quote-author">{p.replyToAuthorName || 'Post'}</span>
+                                        <span className="reply-quote-text">{p.replyToContent || 'Original post'}</span>
+                                    </button>
+                                )}
 
                                 <p style={{ fontSize: '0.85rem', color: 'var(--gv-text-main)', lineHeight: 1.4, margin: '0.5rem 0 0.75rem 0' }}>
                                     {p.content}
@@ -325,23 +369,55 @@ export default function ForumDetailPage() {
                                             </button>
                                         );
                                     })}
+
+                                    {!forum.isLocked && (
+                                        <button
+                                            type="button"
+                                            onClick={() => handleStartReplyTo(p)}
+                                            style={{
+                                                background: 'rgba(255, 255, 255, 0.04)',
+                                                border: '1px solid rgba(255, 255, 255, 0.08)',
+                                                color: 'var(--gv-text-sub)',
+                                                padding: '0.25rem 0.6rem',
+                                                borderRadius: '20px',
+                                                fontSize: '0.7rem',
+                                                fontWeight: 800,
+                                                cursor: 'pointer',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '0.3rem'
+                                            }}
+                                        >
+                                            <Reply size={12} /> Reply
+                                        </button>
+                                    )}
                                 </div>
                             </div>
                         ))}
                     </div>
                 )}
 
-                {/* Reply Form */}
                 {forum.isLocked ? (
                     <div style={{ marginTop: '1.5rem', background: 'rgba(233,0,82,0.1)', border: '1px solid rgba(233,0,82,0.2)', padding: '0.75rem', borderRadius: '8px', textAlign: 'center', color: 'var(--gv-pink)', fontSize: '0.8rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}>
                         <Lock size={15} /> This thread has been locked by an administrator. Replies are disabled.
                     </div>
                 ) : currentUser ? (
-                    <form onSubmit={handleReplySubmit} style={{ marginTop: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                    <form ref={composerRef} onSubmit={handleReplySubmit} style={{ marginTop: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                        {replyingTo && (
+                            <div className="reply-composer-bar">
+                                <div className="reply-composer-info">
+                                    <span className="reply-composer-label">Replying to {replyingTo.authorName}</span>
+                                    <span className="reply-composer-snippet">{truncate(replyingTo.content, 60)}</span>
+                                </div>
+                                <button type="button" className="reply-composer-dismiss" onClick={() => setReplyingTo(null)} aria-label="Cancel reply">
+                                    <X size={16} />
+                                </button>
+                            </div>
+                        )}
                         <textarea 
                             className="gv-input"
                             rows="3"
-                            placeholder="Write your reply..."
+                            placeholder={replyingTo ? `Reply to ${replyingTo.authorName}...` : 'Write your reply...'}
                             value={replyContent}
                             onChange={(e) => setReplyContent(e.target.value)}
                             required

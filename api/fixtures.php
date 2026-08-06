@@ -44,6 +44,34 @@ if ($method === 'POST') {
         jsonResponse(['success' => true, 'id' => $newId]);
     }
 
+    if ($action === 'update') {
+        $id = (int)($input['id'] ?? 0);
+        $tournId = (int)($input['tournId'] ?? 0);
+        $home = trim($input['home'] ?? '');
+        $away = trim($input['away'] ?? '');
+        $date = trim($input['date'] ?? '');
+        $time = trim($input['time'] ?? '');
+
+        if (!$id || !$tournId || !$home || !$away || !$date || !$time) {
+            jsonResponse(['error' => 'All fixture fields are required.'], 400);
+        }
+
+        if ($home === $away) {
+            jsonResponse(['error' => 'Home team and Away team cannot be the same.'], 400);
+        }
+
+        $weekday = trim($input['weekday'] ?? '');
+        if (!$weekday) {
+            $ts = strtotime($date);
+            $weekday = $ts ? date('l', $ts) : 'Thursday';
+        }
+
+        $stmt = $pdo->prepare("UPDATE fixtures SET tourn_id = ?, home_team = ?, away_team = ?, match_date = ?, weekday = ?, match_time = ? WHERE id = ?");
+        $stmt->execute([$tournId, $home, $away, $date, $weekday, $time, $id]);
+
+        jsonResponse(['success' => true]);
+    }
+
     if ($action === 'submit_score') {
         $fixId = (int)($input['id'] ?? 0);
         $homeScore = (int)($input['homeScore'] ?? 0);

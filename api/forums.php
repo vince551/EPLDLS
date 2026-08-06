@@ -64,8 +64,18 @@ if ($method === 'GET' && $action === 'get') {
     $forum['isPinned'] = (bool)$forum['is_pinned'];
     $forum['isLocked'] = (bool)$forum['is_locked'];
 
-    // Fetch posts in this forum
-    $postStmt = $pdo->prepare("SELECT fp.id, fp.forum_id as forumId, fp.user_id as userId, fp.content, fp.created_at as createdAt, u.name as authorName, u.team as authorTeam, u.pic as authorPic, u.role as authorRole FROM forum_posts fp JOIN users u ON fp.user_id = u.id WHERE fp.forum_id = ? ORDER BY fp.created_at ASC");
+    // Fetch posts in this forum with optional quote-reply parent
+    $postStmt = $pdo->prepare("
+        SELECT fp.id, fp.forum_id as forumId, fp.user_id as userId, fp.content, fp.reply_to_id as replyToId,
+               fp.created_at as createdAt, u.name as authorName, u.team as authorTeam, u.pic as authorPic, u.role as authorRole,
+               parent.content as replyToContentRaw, pu.name as replyToAuthorName
+        FROM forum_posts fp
+        JOIN users u ON fp.user_id = u.id
+        LEFT JOIN forum_posts parent ON parent.id = fp.reply_to_id
+        LEFT JOIN users pu ON pu.id = parent.user_id
+        WHERE fp.forum_id = ?
+        ORDER BY fp.created_at ASC
+    ");
     $postStmt->execute([$id]);
     $posts = $postStmt->fetchAll();
 
@@ -73,6 +83,14 @@ if ($method === 'GET' && $action === 'get') {
         $p['id'] = (int)$p['id'];
         $p['forumId'] = (int)$p['forumId'];
         $p['userId'] = (int)$p['userId'];
+        $p['replyToId'] = $p['replyToId'] !== null ? (int)$p['replyToId'] : null;
+        if (!empty($p['replyToContentRaw'])) {
+            $raw = $p['replyToContentRaw'];
+            $p['replyToContent'] = mb_strlen($raw) > 80 ? mb_substr($raw, 0, 80) . '…' : $raw;
+        } else {
+            $p['replyToContent'] = null;
+        }
+        unset($p['replyToContentRaw']);
 
         // Get likes count
         $likeStmt = $pdo->prepare("SELECT COUNT(*) FROM forum_post_likes WHERE post_id = ?");

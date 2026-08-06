@@ -6,7 +6,7 @@ $method = $_SERVER['REQUEST_METHOD'];
 $action = $_GET['action'] ?? $_POST['action'] ?? '';
 
 if ($method === 'GET' && ($action === 'list' || $action === '')) {
-    $stmt = $pdo->query("SELECT id, name, team, role, online, status_color as statusColor, pic, bio, favorite_game as favoriteGame, can_create_forums as canCreateForums, last_seen as lastSeen FROM users WHERE role != 'admin' ORDER BY id ASC");
+    $stmt = $pdo->query("SELECT id, name, team, role, online, status_color as statusColor, pic, bio, favorite_game as favoriteGame, can_create_forums as canCreateForums, last_seen as lastSeen, twitter, instagram, tiktok, discord, youtube FROM users WHERE role != 'admin' ORDER BY id ASC");
     $users = $stmt->fetchAll();
 
     foreach ($users as &$u) {
@@ -22,7 +22,7 @@ if ($method === 'GET' && $action === 'get') {
     $id = (int)($_GET['id'] ?? 0);
     if (!$id) jsonResponse(['error' => 'User ID is required.'], 400);
 
-    $stmt = $pdo->prepare("SELECT id, name, team, role, online, status_color as statusColor, pic, bio, favorite_game as favoriteGame, can_create_forums as canCreateForums, last_seen as lastSeen FROM users WHERE id = ?");
+    $stmt = $pdo->prepare("SELECT id, name, team, role, online, status_color as statusColor, pic, bio, favorite_game as favoriteGame, can_create_forums as canCreateForums, last_seen as lastSeen, twitter, instagram, tiktok, discord, youtube FROM users WHERE id = ?");
     $stmt->execute([$id]);
     $user = $stmt->fetch();
 

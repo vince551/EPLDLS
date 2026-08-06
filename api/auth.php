@@ -102,6 +102,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $bio = trim($input['bio'] ?? '');
         $favoriteGame = trim($input['favoriteGame'] ?? 'DLS');
         $newPass = trim($input['newPass'] ?? '');
+        $twitter = trim($input['twitter'] ?? '');
+        $instagram = trim($input['instagram'] ?? '');
+        $tiktok = trim($input['tiktok'] ?? '');
+        $discord = trim($input['discord'] ?? '');
+        $youtube = trim($input['youtube'] ?? '');
 
         if (!$id) {
             jsonResponse(['error' => 'User ID is required.'], 400);
@@ -109,14 +114,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if ($newPass !== '') {
             $hashed = password_hash($newPass, PASSWORD_DEFAULT);
-            $stmt = $pdo->prepare("UPDATE users SET username = COALESCE(NULLIF(?, ''), username), name = COALESCE(NULLIF(?, ''), name), pic = ?, team = COALESCE(NULLIF(?, ''), team), bio = ?, favorite_game = ?, pass = ? WHERE id = ?");
-            $stmt->execute([$username, $name, $pic, $team, $bio, $favoriteGame, $hashed, $id]);
+            $stmt = $pdo->prepare("UPDATE users SET username = COALESCE(NULLIF(?, ''), username), name = COALESCE(NULLIF(?, ''), name), pic = ?, team = COALESCE(NULLIF(?, ''), team), bio = ?, favorite_game = ?, twitter = ?, instagram = ?, tiktok = ?, discord = ?, youtube = ?, pass = ? WHERE id = ?");
+            $stmt->execute([$username, $name, $pic, $team, $bio, $favoriteGame, $twitter ?: null, $instagram ?: null, $tiktok ?: null, $discord ?: null, $youtube ?: null, $hashed, $id]);
         } else {
-            $stmt = $pdo->prepare("UPDATE users SET username = COALESCE(NULLIF(?, ''), username), name = COALESCE(NULLIF(?, ''), name), pic = ?, team = COALESCE(NULLIF(?, ''), team), bio = ?, favorite_game = ? WHERE id = ?");
-            $stmt->execute([$username, $name, $pic, $team, $bio, $favoriteGame, $id]);
+            $stmt = $pdo->prepare("UPDATE users SET username = COALESCE(NULLIF(?, ''), username), name = COALESCE(NULLIF(?, ''), name), pic = ?, team = COALESCE(NULLIF(?, ''), team), bio = ?, favorite_game = ?, twitter = ?, instagram = ?, tiktok = ?, discord = ?, youtube = ? WHERE id = ?");
+            $stmt->execute([$username, $name, $pic, $team, $bio, $favoriteGame, $twitter ?: null, $instagram ?: null, $tiktok ?: null, $discord ?: null, $youtube ?: null, $id]);
         }
 
-        $userStmt = $pdo->prepare("SELECT id, username, name, team, role, online, status_color, pic, bio, favorite_game, can_create_forums FROM users WHERE id = ?");
+        $userStmt = $pdo->prepare("SELECT id, username, name, team, role, online, status_color, pic, bio, favorite_game, can_create_forums, twitter, instagram, tiktok, discord, youtube FROM users WHERE id = ?");
         $userStmt->execute([$id]);
         $user = $userStmt->fetch();
         if ($user) {

@@ -18,8 +18,18 @@ if ($method === 'GET' && ($action === 'list' || $action === '')) {
     $markStmt = $pdo->prepare("UPDATE messages SET is_read = 1, read_at = NOW() WHERE sender_id = ? AND receiver_id = ? AND is_read = 0");
     $markStmt->execute([$friendId, $userId]);
 
-    // Fetch conversation messages
-    $stmt = $pdo->prepare("SELECT id, sender_id as senderId, receiver_id as receiverId, message, is_read as isRead, read_at as readAt, sent_at as timestamp FROM messages WHERE (sender_id = ? AND receiver_id = ?) OR (sender_id = ? AND receiver_id = ?) ORDER BY sent_at ASC");
+    // Fetch conversation messages with optional quote-reply parent
+    $stmt = $pdo->prepare("
+        SELECT m.id, m.sender_id as senderId, m.receiver_id as receiverId, m.message,
+               m.reply_to_id as replyToId, m.is_read as isRead, m.read_at as readAt, m.sent_at as timestamp,
+               parent.message as replyToMessageRaw, parent.sender_id as replyToSenderId,
+               pu.name as replyToSenderName
+        FROM messages m
+        LEFT JOIN messages parent ON parent.id = m.reply_to_id
+        LEFT JOIN users pu ON pu.id = parent.sender_id
+        WHERE (m.sender_id = ? AND m.receiver_id = ?) OR (m.sender_id = ? AND m.receiver_id = ?)
+        ORDER BY m.sent_at ASC
+    ");
     $stmt->execute([$userId, $friendId, $friendId, $userId]);
     $messages = $stmt->fetchAll();
 
@@ -28,6 +38,15 @@ if ($method === 'GET' && ($action === 'list' || $action === '')) {
         $m['senderId'] = (int)$m['senderId'];
         $m['receiverId'] = (int)$m['receiverId'];
         $m['isRead'] = (bool)$m['isRead'];
+        $m['replyToId'] = $m['replyToId'] !== null ? (int)$m['replyToId'] : null;
+        $m['replyToSenderId'] = $m['replyToSenderId'] !== null ? (int)$m['replyToSenderId'] : null;
+        if ($m['replyToMessageRaw']) {
+            $raw = $m['replyToMessageRaw'];
+            $m['replyToMessage'] = mb_strlen($raw) > 80 ? mb_substr($raw, 0, 80) . '…' : $raw;
+        } else {
+            $m['replyToMessage'] = null;
+        }
+        unset($m['replyToMessageRaw']);
     }
 
     jsonResponse($messages);
@@ -129,13 +148,41 @@ if ($method === 'POST') {
         $senderId = (int)($input['senderId'] ?? 0);
         $receiverId = (int)($input['receiverId'] ?? 0);
         $message = trim($input['message'] ?? '');
+        $replyToId = !empty($input['replyToId']) ? (int)$input['replyToId'] : null;
 
         if (!$senderId || !$receiverId || !$message) {
             jsonResponse(['error' => 'Sender, receiver, and message text are required.'], 400);
         }
 
-        $stmt = $pdo->prepare("INSERT INTO messages (sender_id, receiver_id, message, is_read) VALUES (?, ?, ?, 0)");
-        $stmt->execute([$senderId, $receiverId, $message]);
+        $replyToMessage = null;
+        $replyToSenderName = null;
+        $replyToSenderId = null;
+
+        if ($replyToId) {
+            $parentStmt = $pdo->prepare("SELECT m.id, m.message, m.sender_id, m.receiver_id, u.name as senderName FROM messages m JOIN users u ON u.id = m.sender_id WHERE m.id = ?");
+            $parentStmt->execute([$replyToId]);
+            $parent = $parentStmt->fetch();
+            if (!$parent) {
+                jsonResponse(['error' => 'Reply target message not found.'], 400);
+            }
+            $ps = (int)$parent['sender_id'];
+            $pr = (int)$parent['receiver_id'];
+            // Parent must belong to this conversation pair
+            $inConversation = (
+                ($ps === $senderId || $ps === $receiverId) &&
+                ($pr === $senderId || $pr === $receiverId)
+            );
+            if (!$inConversation) {
+                jsonResponse(['error' => 'Reply target is not part of this conversation.'], 400);
+            }
+            $raw = $parent['message'];
+            $replyToMessage = mb_strlen($raw) > 80 ? mb_substr($raw, 0, 80) . '…' : $raw;
+            $replyToSenderName = $parent['senderName'];
+            $replyToSenderId = $ps;
+        }
+
+        $stmt = $pdo->prepare("INSERT INTO messages (sender_id, receiver_id, message, reply_to_id, is_read) VALUES (?, ?, ?, ?, 0)");
+        $stmt->execute([$senderId, $receiverId, $message, $replyToId]);
         $newId = (int)$pdo->lastInsertId();
 
         $msg = [
@@ -143,6 +190,10 @@ if ($method === 'POST') {
             'senderId' => $senderId,
             'receiverId' => $receiverId,
             'message' => $message,
+            'replyToId' => $replyToId,
+            'replyToMessage' => $replyToMessage,
+            'replyToSenderName' => $replyToSenderName,
+            'replyToSenderId' => $replyToSenderId,
             'isRead' => false,
             'readAt' => null,
             'timestamp' => date('Y-m-d H:i:s')

@@ -12,7 +12,7 @@ if ($method === 'GET' || $action === 'list') {
         jsonResponse([]);
     }
 
-    $stmt = $pdo->prepare("SELECT id, user_id as userId, text, is_read as isRead, created_at FROM notifications WHERE user_id = ? ORDER BY id DESC");
+    $stmt = $pdo->prepare("SELECT id, user_id as userId, text, is_read as isRead, created_at as createdAt FROM notifications WHERE user_id = ? ORDER BY id DESC");
     $stmt->execute([$userId]);
     $notifs = $stmt->fetchAll();
 
@@ -45,6 +45,33 @@ if ($method === 'POST') {
         }
 
         jsonResponse(['success' => true]);
+    }
+
+    if ($action === 'mark_read') {
+        $id = (int)($input['id'] ?? 0);
+        $userId = (int)($input['userId'] ?? 0);
+
+        if (!$id || !$userId) {
+            jsonResponse(['error' => 'Notification ID and User ID are required.'], 400);
+        }
+
+        $stmt = $pdo->prepare("UPDATE notifications SET is_read = 1 WHERE id = ? AND user_id = ?");
+        $stmt->execute([$id, $userId]);
+
+        jsonResponse(['success' => true]);
+    }
+
+    if ($action === 'mark_all_read') {
+        $userId = (int)($input['userId'] ?? 0);
+
+        if (!$userId) {
+            jsonResponse(['error' => 'User ID is required.'], 400);
+        }
+
+        $stmt = $pdo->prepare("UPDATE notifications SET is_read = 1 WHERE user_id = ? AND is_read = 0");
+        $stmt->execute([$userId]);
+
+        jsonResponse(['success' => true, 'marked' => $stmt->rowCount()]);
     }
 }
 

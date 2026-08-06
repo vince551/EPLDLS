@@ -44,7 +44,7 @@ export default function FixturesPage() {
             </div>
 
             {/* Filter Tabs */}
-            <div style={{ display: 'flex', gap: '0.5rem', overflowX: 'auto', scrollbarWidth: 'none' }}>
+            <div className="fixture-filter-chips" style={{ display: 'flex', gap: '0.5rem', overflowX: 'auto', scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch', maxWidth: '100%' }}>
                 <button 
                     className={`gv-btn ${filter === 'all' ? 'gv-btn-primary' : 'gv-btn-secondary'}`}
                     style={{ fontSize: '0.75rem', padding: '0.4rem 0.9rem', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}
@@ -105,12 +105,13 @@ export default function FixturesPage() {
                                 return (
                                     <div 
                                         key={f.id}
-                                        className="gv-card"
+                                        className="gv-card fixture-row"
                                         style={{
                                             padding: '0.85rem 1.1rem',
                                             display: 'flex',
                                             alignItems: 'center',
                                             justifyContent: 'space-between',
+                                            gap: '0.75rem',
                                             background: isMyTeam ? 'rgba(0, 255, 135, 0.1)' : 'var(--gv-card-bg)',
                                             borderColor: isMyTeam ? 'var(--gv-mint)' : 'var(--gv-card-border)'
                                         }}

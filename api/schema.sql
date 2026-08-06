@@ -16,6 +16,11 @@ CREATE TABLE IF NOT EXISTS `users` (
     `bio` TEXT,
     `favorite_game` VARCHAR(50) DEFAULT 'DLS',
     `can_create_forums` TINYINT(1) DEFAULT 0,
+    `twitter` VARCHAR(100) NULL DEFAULT NULL,
+    `instagram` VARCHAR(100) NULL DEFAULT NULL,
+    `tiktok` VARCHAR(100) NULL DEFAULT NULL,
+    `discord` VARCHAR(100) NULL DEFAULT NULL,
+    `youtube` VARCHAR(100) NULL DEFAULT NULL,
     `last_seen` TIMESTAMP NULL DEFAULT NULL,
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -77,11 +82,13 @@ CREATE TABLE IF NOT EXISTS `messages` (
     `sender_id` INT NOT NULL,
     `receiver_id` INT NOT NULL,
     `message` TEXT NOT NULL,
+    `reply_to_id` INT NULL DEFAULT NULL,
     `is_read` TINYINT(1) DEFAULT 0,
     `read_at` TIMESTAMP NULL DEFAULT NULL,
     `sent_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (`sender_id`) REFERENCES `users`(`id`) ON DELETE CASCADE,
-    FOREIGN KEY (`receiver_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
+    FOREIGN KEY (`receiver_id`) REFERENCES `users`(`id`) ON DELETE CASCADE,
+    FOREIGN KEY (`reply_to_id`) REFERENCES `messages`(`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- 7. Notifications Table
@@ -114,10 +121,12 @@ CREATE TABLE IF NOT EXISTS `forum_posts` (
     `forum_id` INT NOT NULL,
     `user_id` INT NOT NULL,
     `content` TEXT NOT NULL,
+    `reply_to_id` INT NULL DEFAULT NULL,
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     `updated_at` TIMESTAMP NULL DEFAULT NULL,
     FOREIGN KEY (`forum_id`) REFERENCES `forums`(`id`) ON DELETE CASCADE,
-    FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
+    FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE,
+    FOREIGN KEY (`reply_to_id`) REFERENCES `forum_posts`(`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- 10. Forum Post Likes Table

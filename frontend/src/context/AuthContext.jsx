@@ -126,6 +126,7 @@ export function AuthProvider({ children }) {
             unreadChatCount,
             unreadNotifCount,
             notifications,
+            setNotifications,
             unreadByFriend,
             checkUnreadsAndNotifications
         }}>

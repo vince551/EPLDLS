@@ -4,8 +4,9 @@ import { apiFetch, uploadAvatar } from '../utils/api';
 import { useNavigate } from 'react-router-dom';
 import { 
     User, Camera, Shirt, Gamepad2, MessagesSquare, Lock, 
-    ImagePlus, FolderOpen, FileText, Save, LogOut, AlertTriangle, CheckCircle2, Shield
+    ImagePlus, FolderOpen, FileText, Save, LogOut, AlertTriangle, CheckCircle2, Shield, LayoutDashboard, Share2
 } from 'lucide-react';
+import SocialLinks from '../components/SocialLinks';
 
 export default function ProfilePage() {
     const { currentUser, updateUser, logout } = useAuth();
@@ -16,6 +17,11 @@ export default function ProfilePage() {
     const [bio, setBio] = useState(currentUser?.bio || '');
     const [favoriteGame, setFavoriteGame] = useState(currentUser?.favorite_game || 'DLS');
     const [picUrl, setPicUrl] = useState(currentUser?.pic || '');
+    const [twitter, setTwitter] = useState(currentUser?.twitter || '');
+    const [instagram, setInstagram] = useState(currentUser?.instagram || '');
+    const [tiktok, setTiktok] = useState(currentUser?.tiktok || '');
+    const [discord, setDiscord] = useState(currentUser?.discord || '');
+    const [youtube, setYoutube] = useState(currentUser?.youtube || '');
     const [newPass, setNewPass] = useState('');
     const [loading, setLoading] = useState(false);
     const [uploading, setUploading] = useState(false);
@@ -65,6 +71,11 @@ export default function ProfilePage() {
                     team,
                     bio,
                     favoriteGame,
+                    twitter,
+                    instagram,
+                    tiktok,
+                    discord,
+                    youtube,
                     newPass
                 }
             });
@@ -169,7 +180,7 @@ export default function ProfilePage() {
                         <Shirt size={14} /> {currentUser.team}
                     </div>
 
-                    <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.6rem' }}>
+                    <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.6rem', flexWrap: 'wrap' }}>
                         <span className="gv-badge gv-badge-mint" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
                             <Gamepad2 size={11} /> {favoriteGame}
                         </span>
@@ -183,6 +194,17 @@ export default function ProfilePage() {
                             </span>
                         )}
                     </div>
+                    {currentUser.role === 'admin' && (
+                        <button
+                            type="button"
+                            className="gv-btn gv-btn-primary"
+                            style={{ marginTop: '0.75rem', padding: '0.45rem 0.9rem', fontSize: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+                            onClick={() => navigate('/admin')}
+                        >
+                            <LayoutDashboard size={14} /> Open Admin Dashboard
+                        </button>
+                    )}
+                    <SocialLinks user={{ twitter, instagram, tiktok, discord, youtube }} size="md" />
                 </div>
             </div>
 
@@ -281,6 +303,20 @@ export default function ProfilePage() {
                             value={bio}
                             onChange={(e) => setBio(e.target.value)}
                         />
+                    </div>
+
+                    <div>
+                        <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--gv-text-sub)', display: 'flex', alignItems: 'center', gap: '0.3rem', marginBottom: '0.3rem' }}>
+                            <Share2 size={14} /> Social Media Handles
+                        </label>
+                        <p style={{ fontSize: '0.7rem', color: 'var(--gv-text-muted)', marginBottom: '0.5rem' }}>Enter usernames only (without @). Leave blank to hide.</p>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '0.5rem' }}>
+                            <input type="text" className="gv-input" placeholder="X / Twitter" value={twitter} onChange={e => setTwitter(e.target.value.replace(/^@/, ''))} />
+                            <input type="text" className="gv-input" placeholder="Instagram" value={instagram} onChange={e => setInstagram(e.target.value.replace(/^@/, ''))} />
+                            <input type="text" className="gv-input" placeholder="TikTok" value={tiktok} onChange={e => setTiktok(e.target.value.replace(/^@/, ''))} />
+                            <input type="text" className="gv-input" placeholder="Discord username" value={discord} onChange={e => setDiscord(e.target.value)} />
+                            <input type="text" className="gv-input" placeholder="YouTube" value={youtube} onChange={e => setYoutube(e.target.value.replace(/^@/, ''))} />
+                        </div>
                     </div>
 
                     <div>

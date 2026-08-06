@@ -1,12 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { apiFetch } from '../utils/api';
 import { useNavigate } from 'react-router-dom';
-import { Settings, Users, Gamepad2, Trophy, CalendarDays, PlusCircle, Megaphone, Trash2, ShieldCheck, ShieldAlert, FileText, CheckCircle2 } from 'lucide-react';
+import { Settings, Users, Gamepad2, Trophy, CalendarDays, PlusCircle, Megaphone, Trash2, ShieldCheck, ShieldAlert, FileText, CheckCircle2, Pencil, X } from 'lucide-react';
 
 export default function AdminDashboard() {
     const { currentUser, games, setGames } = useAuth();
     const navigate = useNavigate();
+    const fixtureFormRef = useRef(null);
 
     const [users, setUsers] = useState([]);
     const [tournaments, setTournaments] = useState([]);
@@ -22,6 +23,7 @@ export default function AdminDashboard() {
     const [newTournGameId, setNewTournGameId] = useState(1);
     const [newTournRules, setNewTournRules] = useState('');
 
+    const [editingFixtureId, setEditingFixtureId] = useState(null);
     const [fixTournId, setFixTournId] = useState('');
     const [fixHome, setFixHome] = useState('');
     const [fixAway, setFixAway] = useState('');
@@ -30,6 +32,17 @@ export default function AdminDashboard() {
     const [scores, setScores] = useState({});
 
     const [broadcastText, setBroadcastText] = useState('');
+
+    const resetFixtureForm = (uData = users, tData = tournaments) => {
+        setEditingFixtureId(null);
+        setFixDate('');
+        setFixTime('');
+        if (tData.length > 0) setFixTournId(tData[0].id);
+        if (uData.length >= 2) {
+            setFixHome(uData[0].team);
+            setFixAway(uData[1].team);
+        }
+    };
 
     const loadAdminData = async () => {
         try {
@@ -45,10 +58,12 @@ export default function AdminDashboard() {
             if (Array.isArray(fData)) setFixtures(fData);
             if (Array.isArray(gData)) setGames(gData);
 
-            if (tData.length > 0) setFixTournId(tData[0].id);
-            if (uData.length >= 2) {
-                setFixHome(uData[0].team);
-                setFixAway(uData[1].team);
+            if (!editingFixtureId) {
+                if (tData.length > 0) setFixTournId(tData[0].id);
+                if (uData.length >= 2) {
+                    setFixHome(uData[0].team);
+                    setFixAway(uData[1].team);
+                }
             }
         } catch (e) {
             console.error('Failed to load admin data:', e);
@@ -98,22 +113,57 @@ export default function AdminDashboard() {
         }
     };
 
-    // Schedule Fixture
+    const handleStartEditFixture = (f) => {
+        setEditingFixtureId(f.id);
+        setFixTournId(f.tournId);
+        setFixHome(f.home);
+        setFixAway(f.away);
+        setFixDate(f.date);
+        setFixTime(f.time && f.time.length > 5 ? f.time.substring(0, 5) : f.time);
+        fixtureFormRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    };
+
+    const handleCancelEditFixture = () => {
+        resetFixtureForm();
+    };
+
+    // Schedule / Update Fixture
     const handleScheduleFixture = async (e) => {
         e.preventDefault();
         if (fixHome === fixAway) return alert('Home and Away teams must be different');
         try {
             const d = new Date(fixDate);
             const weekday = d.toLocaleDateString('en-US', { weekday: 'long' });
+            const payload = { tournId: fixTournId, home: fixHome, away: fixAway, date: fixDate, weekday, time: fixTime };
 
-            await apiFetch('/fixtures.php?action=create', {
-                method: 'POST',
-                body: { tournId: fixTournId, home: fixHome, away: fixAway, date: fixDate, weekday, time: fixTime }
-            });
+            if (editingFixtureId) {
+                await apiFetch('/fixtures.php?action=update', {
+                    method: 'POST',
+                    body: { id: editingFixtureId, ...payload }
+                });
+                alert('Fixture updated successfully!');
+            } else {
+                await apiFetch('/fixtures.php?action=create', {
+                    method: 'POST',
+                    body: payload
+                });
+                alert('Fixture scheduled successfully!');
+            }
+            resetFixtureForm();
             loadAdminData();
-            alert('Fixture scheduled successfully!');
         } catch (err) {
             alert(err.message);
+        }
+    };
+
+    const handleDeleteFixture = async (id) => {
+        if (!window.confirm('Delete this fixture? This cannot be undone.')) return;
+        try {
+            await apiFetch(`/fixtures.php?action=delete&id=${id}`, { method: 'DELETE' });
+            if (editingFixtureId === id) resetFixtureForm();
+            loadAdminData();
+        } catch (e) {
+            alert(e.message);
         }
     };
 
@@ -215,7 +265,7 @@ export default function AdminDashboard() {
             </div>
 
             {/* Forms Grid */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.25rem' }}>
+            <div className="admin-forms-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem' }}>
                 {/* Add Game Form */}
                 <div className="gv-card">
                     <h3 style={{ fontSize: '1rem', fontWeight: 900, color: 'white', marginBottom: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
@@ -250,15 +300,15 @@ export default function AdminDashboard() {
                 </div>
 
                 {/* Schedule Fixture Form */}
-                <div className="gv-card">
+                <div className="gv-card" ref={fixtureFormRef}>
                     <h3 style={{ fontSize: '1rem', fontWeight: 900, color: 'white', marginBottom: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                        <CalendarDays size={16} /> Schedule Match Fixture
+                        <CalendarDays size={16} /> {editingFixtureId ? 'Edit Match Fixture' : 'Schedule Match Fixture'}
                     </h3>
                     <form onSubmit={handleScheduleFixture} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                         <select className="gv-input" value={fixTournId} onChange={e => setFixTournId(parseInt(e.target.value))}>
                             {tournaments.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
                         </select>
-                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <div className="admin-form-row" style={{ display: 'flex', gap: '0.5rem' }}>
                             <select className="gv-input" value={fixHome} onChange={e => setFixHome(e.target.value)}>
                                 {users.map(u => <option key={u.id} value={u.team}>{u.team} ({u.name})</option>)}
                             </select>
@@ -266,13 +316,20 @@ export default function AdminDashboard() {
                                 {users.map(u => <option key={u.id} value={u.team}>{u.team} ({u.name})</option>)}
                             </select>
                         </div>
-                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <div className="admin-form-row" style={{ display: 'flex', gap: '0.5rem' }}>
                             <input type="date" className="gv-input" value={fixDate} onChange={e => setFixDate(e.target.value)} required />
                             <input type="time" className="gv-input" value={fixTime} onChange={e => setFixTime(e.target.value)} required />
                         </div>
-                        <button type="submit" className="gv-btn gv-btn-mint" style={{ padding: '0.6rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}>
-                            <CalendarDays size={16} /> Schedule Fixture
-                        </button>
+                        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                            <button type="submit" className="gv-btn gv-btn-mint" style={{ flex: 1, padding: '0.6rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}>
+                                {editingFixtureId ? <><Pencil size={16} /> Update Fixture</> : <><CalendarDays size={16} /> Schedule Fixture</>}
+                            </button>
+                            {editingFixtureId && (
+                                <button type="button" className="gv-btn gv-btn-secondary" style={{ padding: '0.6rem 0.9rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }} onClick={handleCancelEditFixture}>
+                                    <X size={16} /> Cancel
+                                </button>
+                            )}
+                        </div>
                     </form>
                 </div>
 
@@ -296,13 +353,15 @@ export default function AdminDashboard() {
                     <FileText size={16} /> Fixture Match Results Input
                 </h3>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                    {fixtures.map(f => (
-                        <div key={f.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.6rem 0.8rem', background: 'rgba(0,0,0,0.4)', borderRadius: '8px', fontSize: '0.8rem' }}>
-                            <div>
+                    {fixtures.length === 0 ? (
+                        <p style={{ color: 'var(--gv-text-sub)', fontSize: '0.8rem', textAlign: 'center', padding: '1rem' }}>No fixtures scheduled yet.</p>
+                    ) : fixtures.map(f => (
+                        <div key={f.id} className="admin-fixture-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.6rem 0.8rem', background: editingFixtureId === f.id ? 'rgba(0, 255, 135, 0.08)' : 'rgba(0,0,0,0.4)', borderRadius: '8px', fontSize: '0.8rem', gap: '0.75rem', border: editingFixtureId === f.id ? '1px solid rgba(0, 255, 135, 0.3)' : '1px solid transparent' }}>
+                            <div style={{ minWidth: 0, flex: 1 }}>
                                 <span style={{ color: 'var(--gv-cyan)', fontSize: '0.7rem' }}>{f.weekday}, {f.date} ({f.time})</span>
                                 <div style={{ fontWeight: 800, color: 'white' }}>{f.home} vs {f.away}</div>
                             </div>
-                            <div>
+                            <div className="admin-fixture-actions" style={{ display: 'flex', gap: '0.4rem', alignItems: 'center', flexShrink: 0, flexWrap: 'wrap' }}>
                                 {f.played ? (
                                     <span className="gv-badge gv-badge-mint">{f.homeScore} - {f.awayScore} (Played)</span>
                                 ) : (
@@ -315,6 +374,12 @@ export default function AdminDashboard() {
                                         </button>
                                     </div>
                                 )}
+                                <button className="gv-btn gv-btn-secondary" style={{ padding: '4px 8px', fontSize: '0.7rem', display: 'flex', alignItems: 'center', gap: '0.2rem' }} onClick={() => handleStartEditFixture(f)} title="Edit fixture">
+                                    <Pencil size={12} /> Edit
+                                </button>
+                                <button className="gv-btn gv-btn-primary" style={{ padding: '4px 8px', fontSize: '0.7rem', display: 'flex', alignItems: 'center', gap: '0.2rem' }} onClick={() => handleDeleteFixture(f.id)} title="Delete fixture">
+                                    <Trash2 size={12} />
+                                </button>
                             </div>
                         </div>
                     ))}

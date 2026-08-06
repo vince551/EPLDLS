@@ -24,6 +24,13 @@ if (!file_exists($uploadDir)) {
     mkdir($uploadDir, 0755, true);
 }
 
+// Build absolute base URL for uploaded files so they work cross-origin
+$scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+$host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+// Derive the API base path from the current script directory relative to doc root
+$scriptDir = str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME']));
+$uploadsBaseUrl = $scheme . '://' . $host . $scriptDir . '/uploads/avatars/';
+
 $fileUrl = null;
 
 // Case 1: Standard File Upload via $_FILES
@@ -41,8 +48,7 @@ if (isset($_FILES['avatar']) && $_FILES['avatar']['error'] === UPLOAD_ERR_OK) {
     $targetPath = $uploadDir . $fileName;
 
     if (move_uploaded_file($tmpName, $targetPath)) {
-        // Construct public URL path
-        $fileUrl = './api/uploads/avatars/' . $fileName;
+        $fileUrl = $uploadsBaseUrl . $fileName;
     } else {
         jsonResponse(['error' => 'Failed to save uploaded file.'], 500);
     }
@@ -64,7 +70,7 @@ else if (!empty($input['base64'])) {
         $targetPath = $uploadDir . $fileName;
 
         if (file_put_contents($targetPath, $data)) {
-            $fileUrl = './api/uploads/avatars/' . $fileName;
+            $fileUrl = $uploadsBaseUrl . $fileName;
         } else {
             jsonResponse(['error' => 'Failed to save base64 avatar file.'], 500);
         }

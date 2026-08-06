@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { apiFetch } from '../utils/api';
 import { useNavigate } from 'react-router-dom';
 import { Users, Search, MessageCircle, Check, UserPlus, Shirt } from 'lucide-react';
+import SocialLinks from '../components/SocialLinks';
 
 export default function FriendsPage() {
     const { currentUser, checkUnreadsAndNotifications } = useAuth();
@@ -114,7 +115,7 @@ export default function FriendsPage() {
                     <p style={{ color: 'var(--gv-text-sub)' }}>No players found matching search.</p>
                 </div>
             ) : (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }} className="friends-grid">
                     {filteredUsers.map(u => {
                         const isFriend = friends.includes(u.id);
                         const isIncoming = incomingRequests.includes(u.id);
@@ -126,11 +127,12 @@ export default function FriendsPage() {
                                 className="gv-card"
                                 style={{
                                     display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'space-between',
+                                    flexDirection: 'column',
+                                    gap: '0.65rem',
                                     padding: '0.85rem 1rem'
                                 }}
                             >
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', minWidth: 0 }}>
                                     <div style={{ position: 'relative', flexShrink: 0 }}>
                                         {u.pic ? (
@@ -194,6 +196,8 @@ export default function FriendsPage() {
                                         </button>
                                     )}
                                 </div>
+                                </div>
+                                <SocialLinks user={u} />
                             </div>
                         );
                     })}

@@ -9,7 +9,7 @@ if ($method === 'GET' || $action === 'list') {
     $userId = (int)($_GET['userId'] ?? 0);
 
     // Fetch all regular users
-    $stmt = $pdo->query("SELECT id, name, team, online, status_color as statusColor, pic FROM users WHERE role != 'admin' ORDER BY id ASC");
+    $stmt = $pdo->query("SELECT id, name, team, online, status_color as statusColor, pic, twitter, instagram, tiktok, discord, youtube FROM users WHERE role != 'admin' ORDER BY id ASC");
     $users = $stmt->fetchAll();
 
     // Fetch friends & friend requests for $userId

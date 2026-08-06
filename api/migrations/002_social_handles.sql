@@ -1,0 +1,14 @@
+-- Migration: social media handles on users
+SET @db := DATABASE();
+
+SET @col_exists := (
+  SELECT COUNT(*) FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = @db AND TABLE_NAME = 'users' AND COLUMN_NAME = 'twitter'
+);
+SET @sql := IF(@col_exists = 0,
+  'ALTER TABLE users ADD COLUMN twitter VARCHAR(100) NULL DEFAULT NULL, ADD COLUMN instagram VARCHAR(100) NULL DEFAULT NULL, ADD COLUMN tiktok VARCHAR(100) NULL DEFAULT NULL, ADD COLUMN discord VARCHAR(100) NULL DEFAULT NULL, ADD COLUMN youtube VARCHAR(100) NULL DEFAULT NULL',
+  'SELECT 1'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;

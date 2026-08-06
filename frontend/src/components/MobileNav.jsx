@@ -1,7 +1,7 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Home, Gamepad2, BarChart2, MessageCircle, MessagesSquare, User, LayoutDashboard } from 'lucide-react';
+import { Home, Gamepad2, CalendarDays, MessageCircle, MessagesSquare, User } from 'lucide-react';
 
 export default function MobileNav() {
     const { currentUser, unreadChatCount } = useAuth();
@@ -18,7 +18,8 @@ export default function MobileNav() {
             borderTop: '1px solid rgba(255, 255, 255, 0.1)',
             display: 'flex',
             justifyContent: 'space-around',
-            padding: '0.4rem 0.2rem'
+            padding: '0.4rem 0.2rem',
+            paddingBottom: 'max(0.4rem, env(safe-area-inset-bottom))'
         }} className="mobile-bottom-nav">
             <NavLink to="/" className={({ isActive }) => `m-nav-item ${isActive ? 'active' : ''}`}>
                 <Home size={20} />
@@ -28,9 +29,9 @@ export default function MobileNav() {
                 <Gamepad2 size={20} />
                 <span>Games</span>
             </NavLink>
-            <NavLink to="/leaderboard" className={({ isActive }) => `m-nav-item ${isActive ? 'active' : ''}`}>
-                <BarChart2 size={20} />
-                <span>Ranks</span>
+            <NavLink to="/fixtures" className={({ isActive }) => `m-nav-item ${isActive ? 'active' : ''}`}>
+                <CalendarDays size={20} />
+                <span>Fixtures</span>
             </NavLink>
 
             {currentUser ? (
@@ -56,12 +57,6 @@ export default function MobileNav() {
                         <User size={20} />
                         <span>Profile</span>
                     </NavLink>
-                    {currentUser.role === 'admin' && (
-                        <NavLink to="/admin" className={({ isActive }) => `m-nav-item ${isActive ? 'active' : ''}`}>
-                            <LayoutDashboard size={20} />
-                            <span>Admin</span>
-                        </NavLink>
-                    )}
                 </>
             ) : (
                 <>
@@ -95,10 +90,17 @@ export default function MobileNav() {
                     text-decoration: none;
                     font-size: 0.65rem;
                     font-weight: 700;
-                    padding: 4px 8px;
+                    padding: 4px 6px;
                     border-radius: 8px;
                     flex: 1;
+                    min-width: 0;
                     transition: var(--transition);
+                }
+                .m-nav-item span {
+                    white-space: nowrap;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    max-width: 100%;
                 }
                 .m-nav-item.active {
                     color: var(--gv-mint);
