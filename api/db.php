@@ -41,6 +41,11 @@ function ensureSchema($pdo) {
         if (!in_array('last_seen', $cols)) $pdo->exec("ALTER TABLE `users` ADD COLUMN `last_seen` TIMESTAMP NULL DEFAULT NULL");
         if (!in_array('typing_to', $cols)) $pdo->exec("ALTER TABLE `users` ADD COLUMN `typing_to` INT DEFAULT NULL");
         if (!in_array('typing_at', $cols)) $pdo->exec("ALTER TABLE `users` ADD COLUMN `typing_at` TIMESTAMP NULL DEFAULT NULL");
+        if (!in_array('twitter', $cols)) $pdo->exec("ALTER TABLE `users` ADD COLUMN `twitter` VARCHAR(100) NULL DEFAULT NULL");
+        if (!in_array('instagram', $cols)) $pdo->exec("ALTER TABLE `users` ADD COLUMN `instagram` VARCHAR(100) NULL DEFAULT NULL");
+        if (!in_array('tiktok', $cols)) $pdo->exec("ALTER TABLE `users` ADD COLUMN `tiktok` VARCHAR(100) NULL DEFAULT NULL");
+        if (!in_array('discord', $cols)) $pdo->exec("ALTER TABLE `users` ADD COLUMN `discord` VARCHAR(100) NULL DEFAULT NULL");
+        if (!in_array('youtube', $cols)) $pdo->exec("ALTER TABLE `users` ADD COLUMN `youtube` VARCHAR(100) NULL DEFAULT NULL");
 
         // Add game_id to tournaments
         $tournCols = $pdo->query("SHOW COLUMNS FROM `tournaments`")->fetchAll(PDO::FETCH_COLUMN);

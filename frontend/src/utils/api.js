@@ -24,11 +24,22 @@ export async function apiFetch(endpoint, options = {}) {
 
     try {
         const response = await fetch(url, config);
-        const data = await response.json();
-        if (!response.ok) {
-            throw new Error(data.error || 'Server request failed');
+        const rawText = await response.text();
+        let data = null;
+
+        if (rawText) {
+            try {
+                data = JSON.parse(rawText);
+            } catch (parseErr) {
+                throw new Error(`Server returned invalid JSON: ${rawText.slice(0, 160)}`);
+            }
         }
-        return data;
+
+        if (!response.ok) {
+            throw new Error(data?.error || `Server request failed (${response.status})`);
+        }
+
+        return data ?? {};
     } catch (err) {
         console.warn('API Fetch Warning/Fallback:', err.message);
         throw err;
