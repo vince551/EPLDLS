@@ -25,8 +25,8 @@ try {
              parent.message as replyToMessageRaw, parent.sender_id as replyToSenderId,
              pu.name as replyToSenderName
          FROM messages m
-         LEFT JOIN messages parent ON parent.id = m.reply_to_id
-         LEFT JOIN users pu ON pu.id = parent.sender_id
+         LEFT JOIN messages parent ON parent.id = m.reply_to_id AND m.reply_to_id IS NOT NULL
+         LEFT JOIN users pu ON pu.id = parent.sender_id AND parent.id IS NOT NULL
          WHERE (m.sender_id = ? AND m.receiver_id = ?) OR (m.sender_id = ? AND m.receiver_id = ?)
          ORDER BY m.sent_at ASC";
          $stmt = $pdo->prepare($sql);

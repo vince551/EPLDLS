@@ -132,10 +132,14 @@ export default function ChatPage() {
             const url = `/messages.php?action=list&user_id=${currentUser.id}&friend_id=${friendId}`;
             const payload = await apiFetch(url);
             const msgs = normalizeMessagesPayload(payload);
-            console.debug('ChatPage.fetchMessages:', { url, friendId, userId: currentUser.id, returnedCount: Array.isArray(msgs) ? msgs.length : 0, payload });
-            if (Array.isArray(msgs)) {
+            console.debug('ChatPage.fetchMessages:', { url, friendId, userId: currentUser.id, returnedCount: Array.isArray(msgs) ? msgs.length : 0, payload, msgs });
+            if (Array.isArray(msgs) && msgs.length > 0) {
                 setMessages(prev => mergeMessages(prev, msgs));
                 return msgs;
+            }
+            // If API returned empty array, check fallback
+            if (Array.isArray(msgs)) {
+                setMessages([]);
             }
             // Fallback: if API returned no messages but we have a conversation preview, show the last message
             const conv = conversations.find(c => c.id === friendId);
@@ -158,7 +162,7 @@ export default function ChatPage() {
         } finally {
             if (!silent) setLoadingMsgs(false);
         }
-    }, [currentUser?.id]);
+    }, [currentUser?.id, conversations]);
 
     // Scroll only when new messages arrive and user is at bottom (or just sent)
     useEffect(() => {
