@@ -6,6 +6,13 @@ import { MessageCircle, Send, Check, CheckCheck, Shirt, HandMetal, ArrowLeft, Re
 
 const isMobileViewport = () => typeof window !== 'undefined' && window.matchMedia('(max-width: 768px)').matches;
 
+function normalizeMessagesPayload(payload) {
+    if (Array.isArray(payload)) return payload;
+    if (payload && Array.isArray(payload.messages)) return payload.messages;
+    if (payload && Array.isArray(payload.data)) return payload.data;
+    return [];
+}
+
 function mergeMessages(prev, incoming) {
     if (!Array.isArray(incoming)) return prev;
 
@@ -118,16 +125,20 @@ export default function ChatPage() {
         }
     }, [currentUser?.id]);
 
-    const fetchMessages = useCallback(async (silent = false) => {
-        const friendId = activeFriendIdRef.current;
-        if (!currentUser?.id || !friendId) return;
+    const fetchMessages = useCallback(async (friendIdOverride = null, silent = false) => {
+        const friendId = friendIdOverride ?? activeFriendIdRef.current;
+        if (!currentUser?.id || !friendId) return [];
         try {
-            const msgs = await apiFetch(`/messages.php?action=list&user_id=${currentUser.id}&friend_id=${friendId}`);
+            const payload = await apiFetch(`/messages.php?action=list&user_id=${currentUser.id}&friend_id=${friendId}`);
+            const msgs = normalizeMessagesPayload(payload);
             if (Array.isArray(msgs)) {
                 setMessages(prev => mergeMessages(prev, msgs));
+                return msgs;
             }
+            return [];
         } catch (e) {
             console.error('Failed to fetch messages:', e);
+            return [];
         } finally {
             if (!silent) setLoadingMsgs(false);
         }
@@ -157,12 +168,12 @@ export default function ChatPage() {
         if (activeFriendId) {
             setLoadingMsgs(true);
             setMessages([]);
-            fetchMessages(false);
+            fetchMessages(activeFriendId, false);
         } else {
             setMessages([]);
             setLoadingMsgs(false);
         }
-    }, [activeFriendId, currentUser?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [activeFriendId, currentUser?.id, fetchConversations, fetchMessages]);
 
     // Background polling — silent, no loading flicker
     useEffect(() => {
@@ -170,7 +181,7 @@ export default function ChatPage() {
         const interval = setInterval(() => {
             fetchConversations(true);
             if (activeFriendIdRef.current) {
-                fetchMessages(true);
+                fetchMessages(activeFriendIdRef.current, true);
             }
         }, 3000);
         return () => clearInterval(interval);
@@ -223,7 +234,7 @@ export default function ChatPage() {
                 method: 'POST',
                 body: { userId: currentUser.id, friendId: activeFriendId, isTyping: false }
             });
-            await fetchMessages(true);
+            await fetchMessages(activeFriendId, true);
             await fetchConversations(true);
             await checkUnreadsAndNotifications();
         } catch (err) {
@@ -263,6 +274,7 @@ export default function ChatPage() {
         setActiveFriendId(id);
         setLoadingMsgs(true);
         setMessages([]);
+        fetchMessages(id, false);
     };
 
     const showThread = !!activeFriendId;
