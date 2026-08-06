@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { Gamepad2, Bell, Globe, KeyRound, User, Menu, X, Users, TrendingUp, Trophy, BarChart2, MessagesSquare } from 'lucide-react';
 
-function Header({ onOpenNotifications }) {
+export default function Header({ onOpenNotifications }) {
     const { currentUser, unreadNotifCount, activeGame, setActiveGame, games } = useAuth();
     const navigate = useNavigate();
     const [showMobileMenu, setShowMobileMenu] = useState(false);

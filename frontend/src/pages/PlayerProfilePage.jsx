@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { apiFetch } from '../utils/api';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Heart, MessageCircle, Users, Trophy, Gamepad2, Twitter, Instagram, Youtube, Mail } from 'lucide-react';
+import { ArrowLeft, Heart, MessageCircle, Users, Trophy, Gamepad2, Mail, ExternalLink } from 'lucide-react';
 
 export default function PlayerProfilePage() {
     const { currentUser } = useAuth();
@@ -204,17 +204,17 @@ export default function PlayerProfilePage() {
                     <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
                         {profile.twitter && (
                             <a href={`https://twitter.com/${profile.twitter}`} target="_blank" rel="noopener noreferrer" className="gv-btn gv-btn-secondary" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', textDecoration: 'none' }}>
-                                <Twitter size={14} /> {profile.twitter}
+                                <ExternalLink size={14} /> {profile.twitter}
                             </a>
                         )}
                         {profile.instagram && (
                             <a href={`https://instagram.com/${profile.instagram}`} target="_blank" rel="noopener noreferrer" className="gv-btn gv-btn-secondary" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', textDecoration: 'none' }}>
-                                <Instagram size={14} /> {profile.instagram}
+                                <ExternalLink size={14} /> {profile.instagram}
                             </a>
                         )}
                         {profile.youtube && (
                             <a href={`https://youtube.com/@${profile.youtube}`} target="_blank" rel="noopener noreferrer" className="gv-btn gv-btn-secondary" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', textDecoration: 'none' }}>
-                                <Youtube size={14} /> {profile.youtube}
+                                <ExternalLink size={14} /> {profile.youtube}
                             </a>
                         )}
                         {profile.discord && (
