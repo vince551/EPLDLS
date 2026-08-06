@@ -32,9 +32,11 @@ export default function AdminDashboard() {
     const [scores, setScores] = useState({});
 
     const [broadcastText, setBroadcastText] = useState('');
+    const [isEditingForm, setIsEditingForm] = useState(false);
 
     const resetFixtureForm = (uData = users, tData = tournaments) => {
         setEditingFixtureId(null);
+        setIsEditingForm(false);
         setFixDate('');
         setFixTime('');
         if (tData.length > 0) setFixTournId(tData[0].id);
@@ -58,8 +60,8 @@ export default function AdminDashboard() {
             if (Array.isArray(fData)) setFixtures(fData);
             if (Array.isArray(gData)) setGames(gData);
 
-            // Only reset form if not currently editing and form is empty
-            if (!editingFixtureId && !fixHome && !fixAway) {
+            // Only reset form if not currently editing the form
+            if (!isEditingForm && !editingFixtureId) {
                 if (tData.length > 0) setFixTournId(tData[0].id);
                 if (uData.length >= 2) {
                     setFixHome(uData[0].team);
@@ -310,10 +312,10 @@ export default function AdminDashboard() {
                             {tournaments.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
                         </select>
                         <div className="admin-form-row" style={{ display: 'flex', gap: '0.5rem' }}>
-                            <select className="gv-input" value={fixHome} onChange={e => setFixHome(e.target.value)}>
+                            <select className="gv-input" value={fixHome} onChange={e => { setFixHome(e.target.value); setIsEditingForm(true); }}>
                                 {users.map(u => <option key={u.id} value={u.team}>{u.team} ({u.name})</option>)}
                             </select>
-                            <select className="gv-input" value={fixAway} onChange={e => setFixAway(e.target.value)}>
+                            <select className="gv-input" value={fixAway} onChange={e => { setFixAway(e.target.value); setIsEditingForm(true); }}>
                                 {users.map(u => <option key={u.id} value={u.team}>{u.team} ({u.name})</option>)}
                             </select>
                         </div>
