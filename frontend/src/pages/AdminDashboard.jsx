@@ -58,7 +58,8 @@ export default function AdminDashboard() {
             if (Array.isArray(fData)) setFixtures(fData);
             if (Array.isArray(gData)) setGames(gData);
 
-            if (!editingFixtureId) {
+            // Only reset form if not currently editing and form is empty
+            if (!editingFixtureId && !fixHome && !fixAway) {
                 if (tData.length > 0) setFixTournId(tData[0].id);
                 if (uData.length >= 2) {
                     setFixHome(uData[0].team);
@@ -76,7 +77,7 @@ export default function AdminDashboard() {
             return;
         }
         loadAdminData();
-    }, [currentUser]);
+    }, [currentUser?.id]); // Only re-run when user changes
 
     // Add Game
     const handleAddGame = async (e) => {
@@ -409,7 +410,7 @@ export default function AdminDashboard() {
                                     <td style={{ padding: '0.5rem', color: 'var(--gv-cyan)' }}>{u.team}</td>
                                     <td style={{ padding: '0.5rem' }}>{u.favoriteGame || 'DLS'}</td>
                                     <td style={{ padding: '0.5rem' }}>
-                                        <button 
+                                        <button
                                             className={`gv-btn ${u.canCreateForums ? 'gv-btn-mint' : 'gv-btn-secondary'}`}
                                             style={{ padding: '0.25rem 0.6rem', fontSize: '0.65rem', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}
                                             onClick={() => handleToggleForumPermission(u.id)}
