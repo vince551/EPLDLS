@@ -47,9 +47,84 @@ function ensureSchema($pdo) {
         if (!in_array('discord', $cols)) $pdo->exec("ALTER TABLE `users` ADD COLUMN `discord` VARCHAR(100) NULL DEFAULT NULL");
         if (!in_array('youtube', $cols)) $pdo->exec("ALTER TABLE `users` ADD COLUMN `youtube` VARCHAR(100) NULL DEFAULT NULL");
 
-        // Add game_id to tournaments
+        // Add tournament_type, status, current_round to tournaments
         $tournCols = $pdo->query("SHOW COLUMNS FROM `tournaments`")->fetchAll(PDO::FETCH_COLUMN);
-        if (!in_array('game_id', $tournCols)) $pdo->exec("ALTER TABLE `tournaments` ADD COLUMN `game_id` INT DEFAULT 1");
+        if (!in_array('tournament_type', $tournCols)) {
+            try {
+                $pdo->exec("ALTER TABLE `tournaments` ADD COLUMN `tournament_type` ENUM('league', 'knockout', 'group_knockout') DEFAULT 'knockout'");
+            } catch (Exception $e) {}
+        }
+        if (!in_array('status', $tournCols)) {
+            try {
+                $pdo->exec("ALTER TABLE `tournaments` ADD COLUMN `status` ENUM('draft', 'group_stage', 'knockout_stage', 'completed') DEFAULT 'draft'");
+            } catch (Exception $e) {}
+        }
+        if (!in_array('current_round', $tournCols)) {
+            try {
+                $pdo->exec("ALTER TABLE `tournaments` ADD COLUMN `current_round` VARCHAR(50) DEFAULT NULL");
+            } catch (Exception $e) {}
+        }
+
+        // Add bracket fields to fixtures
+        $fixCols = $pdo->query("SHOW COLUMNS FROM `fixtures`")->fetchAll(PDO::FETCH_COLUMN);
+        if (!in_array('stage', $fixCols)) {
+            try {
+                $pdo->exec("ALTER TABLE `fixtures` ADD COLUMN `stage` VARCHAR(50) DEFAULT 'GROUP_STAGE'");
+            } catch (Exception $e) {}
+        }
+        if (!in_array('group_name', $fixCols)) {
+            try {
+                $pdo->exec("ALTER TABLE `fixtures` ADD COLUMN `group_name` VARCHAR(50) DEFAULT NULL");
+            } catch (Exception $e) {}
+        }
+        if (!in_array('bracket_position', $fixCols)) {
+            try {
+                $pdo->exec("ALTER TABLE `fixtures` ADD COLUMN `bracket_position` INT DEFAULT NULL");
+            } catch (Exception $e) {}
+        }
+        if (!in_array('next_fixture_id', $fixCols)) {
+            try {
+                $pdo->exec("ALTER TABLE `fixtures` ADD COLUMN `next_fixture_id` INT DEFAULT NULL");
+            } catch (Exception $e) {}
+        }
+        if (!in_array('winner_slot', $fixCols)) {
+            try {
+                $pdo->exec("ALTER TABLE `fixtures` ADD COLUMN `winner_slot` ENUM('home', 'away') DEFAULT NULL");
+            } catch (Exception $e) {}
+        }
+
+        // Create tournament_standings table
+        $pdo->exec("CREATE TABLE IF NOT EXISTS `tournament_standings` (
+            `id` INT AUTO_INCREMENT PRIMARY KEY,
+            `tourn_id` INT NOT NULL,
+            `team_name` VARCHAR(100) NOT NULL,
+            `group_name` VARCHAR(50) DEFAULT NULL,
+            `played` INT DEFAULT 0,
+            `wins` INT DEFAULT 0,
+            `draws` INT DEFAULT 0,
+            `losses` INT DEFAULT 0,
+            `goals_for` INT DEFAULT 0,
+            `goals_against` INT DEFAULT 0,
+            `goal_difference` INT GENERATED ALWAYS AS (goals_for - goals_against) STORED,
+            `points` INT GENERATED ALWAYS AS (wins * 3 + draws * 1) STORED,
+            `qualified_to_knockout` TINYINT(1) DEFAULT 0,
+            `position_in_knockout` INT DEFAULT NULL,
+            `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            UNIQUE KEY `tournament_team_group` (`tourn_id`, `team_name`, `group_name`),
+            FOREIGN KEY (`tourn_id`) REFERENCES `tournaments`(`id`) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+        // Create followers table
+        $pdo->exec("CREATE TABLE IF NOT EXISTS `followers` (
+            `id` INT AUTO_INCREMENT PRIMARY KEY,
+            `follower_id` INT NOT NULL,
+            `following_id` INT NOT NULL,
+            `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE KEY `follower_following_unique` (`follower_id`, `following_id`),
+            FOREIGN KEY (`follower_id`) REFERENCES `users`(`id`) ON DELETE CASCADE,
+            FOREIGN KEY (`following_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
 
         // Add is_read, read_at, reply_to_id to messages
         $msgCols = $pdo->query("SHOW COLUMNS FROM `messages`")->fetchAll(PDO::FETCH_COLUMN);

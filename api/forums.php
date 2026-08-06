@@ -139,18 +139,13 @@ if ($method === 'POST') {
             jsonResponse(['error' => 'User ID and Title are required.'], 400);
         }
 
-        // Check user permission (Admin OR can_create_forums == 1)
-        $userStmt = $pdo->prepare("SELECT role, can_create_forums FROM users WHERE id = ?");
+        // Any logged-in user can create forums
+        $userStmt = $pdo->prepare("SELECT id, name FROM users WHERE id = ? AND role = 'user'");
         $userStmt->execute([$userId]);
         $user = $userStmt->fetch();
 
         if (!$user) {
             jsonResponse(['error' => 'User not found.'], 404);
-        }
-
-        $canCreate = ($user['role'] === 'admin') || ((int)$user['can_create_forums'] === 1);
-        if (!$canCreate) {
-            jsonResponse(['error' => 'Permission denied. Only admins or granted users can create forum topics.'], 403);
         }
 
         $stmt = $pdo->prepare("INSERT INTO forums (game_id, title, description, created_by) VALUES (?, ?, ?, ?)");
@@ -161,6 +156,13 @@ if ($method === 'POST') {
         if ($description) {
             $pStmt = $pdo->prepare("INSERT INTO forum_posts (forum_id, user_id, content) VALUES (?, ?, ?)");
             $pStmt->execute([$newId, $userId, $description]);
+        }
+
+        // Send notification about new forum
+        $notif = $pdo->prepare("INSERT INTO notifications (user_id, text) VALUES (?, ?)");
+        $notifStmt = $pdo->query("SELECT id FROM users WHERE role = 'admin'");
+        foreach ($notifStmt->fetchAll() as $admin) {
+            $notif->execute([$admin['id'], "New forum '{$title}' created by {$user['name']}"]);
         }
 
         jsonResponse(['success' => true, 'id' => $newId]);

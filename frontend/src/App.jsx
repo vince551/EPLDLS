@@ -19,6 +19,9 @@ import ForumsPage from './pages/ForumsPage';
 import ForumDetailPage from './pages/ForumDetailPage';
 import ProfilePage from './pages/ProfilePage';
 import AdminDashboard from './pages/AdminDashboard';
+import PlayersPage from './pages/PlayersPage';
+import PlayerProfilePage from './pages/PlayerProfilePage';
+import FeedPage from './pages/FeedPage';
 
 function ProtectedRoute({ children, adminOnly = false }) {
     const { currentUser } = useAuth();
@@ -34,7 +37,7 @@ function MainLayout() {
         <div className="app-shell">
             <Header onOpenNotifications={() => setIsNotifOpen(true)} />
             <Navbar />
-            
+
             <main className="main-content">
                 <Routes>
                     <Route path="/" element={<HomePage />} />
@@ -49,15 +52,18 @@ function MainLayout() {
                     <Route path="/forums/:id" element={<ForumDetailPage />} />
                     <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
                     <Route path="/admin" element={<ProtectedRoute adminOnly><AdminDashboard /></ProtectedRoute>} />
+                    <Route path="/players" element={<PlayersPage />} />
+                    <Route path="/player/:playerId" element={<PlayerProfilePage />} />
+                    <Route path="/feed" element={<ProtectedRoute><FeedPage /></ProtectedRoute>} />
                     <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
             </main>
 
             <MobileNav />
 
-            <NotificationsModal 
-                isOpen={isNotifOpen} 
-                onClose={() => setIsNotifOpen(false)} 
+            <NotificationsModal
+                isOpen={isNotifOpen}
+                onClose={() => setIsNotifOpen(false)}
             />
         </div>
     );

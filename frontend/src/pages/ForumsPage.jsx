@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { apiFetch } from '../utils/api';
 import { useNavigate } from 'react-router-dom';
-import { 
-    MessagesSquare, Plus, Lock, Pin, Globe, MessageCircle, 
+import {
+    MessagesSquare, Plus, Lock, Pin, Globe, MessageCircle,
     Gamepad2, X, AlertTriangle, Send, Bookmark
 } from 'lucide-react';
 
@@ -22,7 +22,7 @@ export default function ForumsPage() {
     const [createLoading, setCreateLoading] = useState(false);
     const [error, setError] = useState('');
 
-    const canCreate = currentUser && (currentUser.role === 'admin' || currentUser.can_create_forums);
+    const canCreate = !!currentUser; // All logged-in users can create forums
 
     const fetchForums = async () => {
         try {
@@ -79,7 +79,7 @@ export default function ForumsPage() {
                 </div>
 
                 {canCreate ? (
-                    <button 
+                    <button
                         className="gv-btn gv-btn-mint"
                         onClick={() => setShowCreateModal(true)}
                         style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}
@@ -103,7 +103,7 @@ export default function ForumsPage() {
             ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                     {forums.map(f => (
-                        <div 
+                        <div
                             key={f.id}
                             className="gv-card"
                             onClick={() => navigate(`/forums/${f.id}`)}
@@ -175,7 +175,7 @@ export default function ForumsPage() {
                                 <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--gv-text-sub)', display: 'flex', alignItems: 'center', gap: '0.3rem', marginBottom: '0.3rem' }}>
                                     <Gamepad2 size={14} /> Associated Game Category
                                 </label>
-                                <select 
+                                <select
                                     className="gv-input"
                                     value={gameId}
                                     onChange={(e) => setGameId(e.target.value)}
@@ -191,7 +191,7 @@ export default function ForumsPage() {
                                 <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--gv-text-sub)', display: 'flex', alignItems: 'center', gap: '0.3rem', marginBottom: '0.3rem' }}>
                                     <Bookmark size={14} /> Thread Title
                                 </label>
-                                <input 
+                                <input
                                     type="text"
                                     className="gv-input"
                                     placeholder="e.g. Best DLS Season 26 4-3-3 Tactics"
@@ -205,7 +205,7 @@ export default function ForumsPage() {
                                 <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--gv-text-sub)', display: 'flex', alignItems: 'center', gap: '0.3rem', marginBottom: '0.3rem' }}>
                                     <MessageCircle size={14} /> Thread Description / Initial Post
                                 </label>
-                                <textarea 
+                                <textarea
                                     className="gv-input"
                                     rows="4"
                                     placeholder="Share your thoughts, strategies or questions..."

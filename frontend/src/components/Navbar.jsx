@@ -1,9 +1,9 @@
 import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { 
-    Home, Gamepad2, Trophy, CalendarDays, BarChart2, Users, MessageCircle, 
-    MessagesSquare, User, LayoutDashboard, LogOut 
+import {
+    Home, Gamepad2, Trophy, CalendarDays, BarChart2, Users, MessageCircle,
+    MessagesSquare, User, LayoutDashboard, LogOut
 } from 'lucide-react';
 
 export default function Navbar() {
@@ -36,6 +36,9 @@ export default function Navbar() {
             <NavLink to="/leaderboard" className={({ isActive }) => `gv-nav-link ${isActive ? 'active' : ''}`}>
                 <BarChart2 size={15} /> Leaderboard
             </NavLink>
+            <NavLink to="/players" className={({ isActive }) => `gv-nav-link ${isActive ? 'active' : ''}`}>
+                <Users size={15} /> Players
+            </NavLink>
             <NavLink to="/friends" className={({ isActive }) => `gv-nav-link ${isActive ? 'active' : ''}`}>
                 <Users size={15} /> Gamers
             </NavLink>
@@ -53,6 +56,9 @@ export default function Navbar() {
                             </span>
                         )}
                     </NavLink>
+                    <NavLink to="/feed" className={({ isActive }) => `gv-nav-link ${isActive ? 'active' : ''}`}>
+                        <MessageCircle size={15} /> Feed
+                    </NavLink>
                     <NavLink to="/profile" className={({ isActive }) => `gv-nav-link ${isActive ? 'active' : ''}`}>
                         <User size={15} /> Profile
                     </NavLink>
@@ -63,7 +69,7 @@ export default function Navbar() {
                         </NavLink>
                     )}
 
-                    <button 
+                    <button
                         onClick={() => { logout(); navigate('/auth'); }}
                         style={{
                             marginLeft: 'auto',
@@ -85,7 +91,7 @@ export default function Navbar() {
                 </>
             ) : (
                 <div style={{ marginLeft: 'auto', display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                    <button 
+                    <button
                         onClick={() => navigate('/auth')}
                         className="gv-btn gv-btn-primary"
                         style={{ padding: '0.4rem 1rem', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
