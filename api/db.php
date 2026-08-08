@@ -165,9 +165,18 @@ function ensureSchema($pdo) {
             `forum_id` INT NOT NULL,
             `user_id` INT NOT NULL,
             `content` TEXT NOT NULL,
+            `reply_to_id` INT DEFAULT NULL,
             `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             `updated_at` TIMESTAMP NULL DEFAULT NULL
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+        // Migrate reply_to_id onto existing forum_posts tables
+        $fpCols = $pdo->query("SHOW COLUMNS FROM `forum_posts`")->fetchAll(PDO::FETCH_COLUMN);
+        if (!in_array('reply_to_id', $fpCols)) {
+            try {
+                $pdo->exec("ALTER TABLE `forum_posts` ADD COLUMN `reply_to_id` INT DEFAULT NULL");
+            } catch (Exception $e) {}
+        }
 
         // Create forum_post_likes table
         $pdo->exec("CREATE TABLE IF NOT EXISTS `forum_post_likes` (
@@ -176,6 +185,16 @@ function ensureSchema($pdo) {
             `user_id` INT NOT NULL,
             `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             UNIQUE KEY `unique_post_user_like` (`post_id`, `user_id`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+        // Create forum_post_reactions table
+        $pdo->exec("CREATE TABLE IF NOT EXISTS `forum_post_reactions` (
+            `id` INT AUTO_INCREMENT PRIMARY KEY,
+            `post_id` INT NOT NULL,
+            `user_id` INT NOT NULL,
+            `reaction` VARCHAR(10) NOT NULL,
+            `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE KEY `unique_post_user_reaction` (`post_id`, `user_id`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
 
         // Seed default forums if empty
