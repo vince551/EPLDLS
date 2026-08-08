@@ -150,7 +150,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($action === 'ping_online') {
         $id = (int)($input['id'] ?? 0);
         if ($id > 0) {
-            $stmt = $pdo->prepare("UPDATE users SET online = 1, last_seen = NOW() WHERE id = ?");
+            $stmt = $pdo->prepare("UPDATE users SET online = 1, status_color = 'status-online', last_seen = NOW() WHERE id = ?");
+            $stmt->execute([$id]);
+        }
+        jsonResponse(['success' => true]);
+    }
+
+    if ($action === 'logout') {
+        $id = (int)($input['id'] ?? 0);
+        if ($id > 0) {
+            $stmt = $pdo->prepare("UPDATE users SET online = 0, status_color = 'status-offline' WHERE id = ?");
             $stmt->execute([$id]);
         }
         jsonResponse(['success' => true]);

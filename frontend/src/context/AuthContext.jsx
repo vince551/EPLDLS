@@ -45,7 +45,7 @@ export function AuthProvider({ children }) {
             apiFetch('/auth.php?action=ping_online', {
                 method: 'POST',
                 body: { id: currentUser.id }
-            }).catch(() => {});
+            }).catch(() => { });
 
             // Fetch unread messages
             const unreadRes = await apiFetch(`/messages.php?action=unread_counts&user_id=${currentUser.id}`).catch(() => null);
@@ -102,11 +102,31 @@ export function AuthProvider({ children }) {
         return res.user;
     };
 
-    const logout = () => {
+    const logout = async () => {
+        if (currentUser?.id) {
+            // Mark offline on server — fire and forget
+            apiFetch('/auth.php?action=logout', {
+                method: 'POST',
+                body: { id: currentUser.id }
+            }).catch(() => { });
+        }
         setCurrentUser(null);
         setUnreadChatCount(0);
         setUnreadNotifCount(0);
     };
+
+    // Mark offline when tab/browser closes
+    useEffect(() => {
+        if (!currentUser?.id) return;
+        const handleUnload = () => {
+            navigator.sendBeacon(
+                `${window.location.origin}/api/auth.php?action=logout`,
+                JSON.stringify({ id: currentUser.id })
+            );
+        };
+        window.addEventListener('beforeunload', handleUnload);
+        return () => window.removeEventListener('beforeunload', handleUnload);
+    }, [currentUser?.id]);
 
     const updateUser = (updatedFields) => {
         setCurrentUser(prev => prev ? { ...prev, ...updatedFields } : null);

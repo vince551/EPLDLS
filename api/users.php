@@ -11,7 +11,8 @@ if ($method === 'GET' && ($action === 'list' || $action === '')) {
 
     foreach ($users as &$u) {
         $u['id'] = (int)$u['id'];
-        $u['online'] = (bool)$u['online'];
+        // Online = last_seen within 5 minutes
+        $u['online'] = !empty($u['lastSeen']) && (time() - strtotime($u['lastSeen'])) < 300;
         $u['canCreateForums'] = (bool)$u['canCreateForums'];
     }
 
@@ -29,7 +30,7 @@ if ($method === 'GET' && $action === 'get') {
     if (!$user) jsonResponse(['error' => 'User not found.'], 404);
 
     $user['id'] = (int)$user['id'];
-    $user['online'] = (bool)$user['online'];
+    $user['online'] = !empty($user['lastSeen']) && (time() - strtotime($user['lastSeen'])) < 300;
     $user['canCreateForums'] = (bool)$user['canCreateForums'];
 
     jsonResponse($user);

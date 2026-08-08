@@ -60,6 +60,12 @@ try {
         $stmt->execute($params);
         $players = $stmt->fetchAll();
 
+        // Compute real online status from last_seen and fix friend status
+        foreach ($players as &$p) {
+            $p['online'] = !empty($p['lastSeen']) && (time() - strtotime($p['lastSeen'])) < 300;
+        }
+        unset($p);
+
         // Get friend status for each player
         if ($userId) {
             $friendStatuses = [];
@@ -70,7 +76,7 @@ try {
                 $friendStatuses[$p['id']] = $status ? $status['status'] : null;
             }
             foreach ($players as &$p) {
-                $p['friendStatus'] = $friendStatuses[$p['id']] ?? null; // null, 'pending', 'accepted'
+                $p['friendStatus'] = $friendStatuses[$p['id']] ?? null;
             }
         }
 
@@ -95,7 +101,8 @@ try {
             jsonResponse(['error' => 'Player not found'], 404);
         }
 
-        // Get player stats
+        // Compute real online from last_seen
+        $profile['online'] = !empty($profile['lastSeen']) && (time() - strtotime($profile['lastSeen'])) < 300;
         $statsStmt = $pdo->prepare("SELECT COUNT(*) as forumsCreated FROM forums WHERE created_by = ?");
         $statsStmt->execute([$profileId]);
         $stats = $statsStmt->fetch();
