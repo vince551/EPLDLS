@@ -9,7 +9,7 @@ if ($method === 'GET' || $action === 'list') {
     $userId = (int)($_GET['userId'] ?? 0);
 
     // Fetch all regular users
-    $stmt = $pdo->query("SELECT id, name, team, online, status_color as statusColor, pic, twitter, instagram, tiktok, discord, youtube FROM users WHERE role != 'admin' ORDER BY id ASC");
+    $stmt = $pdo->query("SELECT id, name, team, online, status_color as statusColor, pic, last_seen as lastSeen, twitter, instagram, tiktok, discord, youtube FROM users WHERE role != 'admin' ORDER BY id ASC");
     $users = $stmt->fetchAll();
 
     // Fetch friends & friend requests for $userId
@@ -42,7 +42,7 @@ if ($method === 'GET' || $action === 'list') {
 
     foreach ($users as &$u) {
         $u['id'] = (int)$u['id'];
-        $u['online'] = (bool)$u['online'];
+        $u['online'] = !empty($u['lastSeen']) && (time() - strtotime($u['lastSeen'])) < 300;
         $u['friends'] = $friends;
         $u['friendRequests'] = $incomingRequests;
         $u['outgoingRequests'] = $outgoingRequests;

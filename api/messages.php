@@ -122,7 +122,8 @@ try {
             $unreadCount = (int)$unStmt->fetchColumn();
 
             $f['id'] = $fId;
-            $f['online'] = (bool)$f['online'];
+            // Online = last_seen within 5 minutes (same logic as users.php)
+            $f['online'] = !empty($f['lastSeen']) && (time() - strtotime($f['lastSeen'])) < 300;
             $f['lastMessage'] = $lastMsg ? $lastMsg['message'] : '';
             $f['lastMessageTime'] = $lastMsg ? $lastMsg['sent_at'] : '';
             $f['lastMessageIsMine'] = $lastMsg ? ((int)$lastMsg['sender_id'] === $userId) : false;
