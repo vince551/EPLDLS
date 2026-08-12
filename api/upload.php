@@ -8,6 +8,73 @@ if ($method !== 'POST') {
     jsonResponse(['error' => 'Method not allowed.'], 405);
 }
 
+// ------------------------------------------------------------------
+// Context-aware upload: forum / chat images
+// ------------------------------------------------------------------
+$context = trim($_POST['context'] ?? '');
+
+if ($context === 'forum' || $context === 'chat') {
+    // Validate that a file was provided under the 'image' field
+    if (!isset($_FILES['image']) || $_FILES['image']['error'] !== UPLOAD_ERR_OK) {
+        jsonResponse(['error' => 'No image file provided.'], 400);
+    }
+
+    $tmpName  = $_FILES['image']['tmp_name'];
+    $origName = basename($_FILES['image']['name']);
+    $fileSize = $_FILES['image']['size'];
+
+    // Enforce 5 MB size limit (Requirements 1.3)
+    $maxBytes = 5 * 1024 * 1024; // 5 MB
+    if ($fileSize > $maxBytes) {
+        jsonResponse(['error' => 'Image must be under 5 MB.'], 400);
+    }
+
+    // Validate MIME type via finfo (Requirements 1.2)
+    $allowedMimes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    $finfo        = new finfo(FILEINFO_MIME_TYPE);
+    $mimeType     = $finfo->file($tmpName);
+
+    if (!in_array($mimeType, $allowedMimes, true)) {
+        jsonResponse(['error' => 'Invalid image format. Allowed: JPG, PNG, GIF, WEBP'], 400);
+    }
+
+    // Map MIME type to extension
+    $mimeToExt = [
+        'image/jpeg' => 'jpg',
+        'image/png'  => 'png',
+        'image/gif'  => 'gif',
+        'image/webp' => 'webp',
+    ];
+    $ext = $mimeToExt[$mimeType];
+
+    // Create upload directory if absent (Requirements 1.4)
+    $uploadDir = __DIR__ . '/uploads/images/';
+    if (!file_exists($uploadDir)) {
+        mkdir($uploadDir, 0755, true);
+    }
+
+    // Build base URL for uploaded images
+    $scheme    = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+    $host      = $_SERVER['HTTP_HOST'] ?? 'localhost';
+    $scriptDir = str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME']));
+    $imagesBaseUrl = $scheme . '://' . $host . $scriptDir . '/uploads/images/';
+
+    // Generate unique filename (Requirements 1.5): img_{context}_{time}.{ext}
+    $fileName   = 'img_' . $context . '_' . time() . '.' . $ext;
+    $targetPath = $uploadDir . $fileName;
+
+    if (!move_uploaded_file($tmpName, $targetPath)) {
+        jsonResponse(['error' => 'Failed to save uploaded file.'], 500);
+    }
+
+    $fileUrl = $imagesBaseUrl . $fileName;
+    jsonResponse(['success' => true, 'url' => $fileUrl]);
+    exit;
+}
+
+// ------------------------------------------------------------------
+// Legacy avatar upload — requires userId
+// ------------------------------------------------------------------
 $userId = (int)($_POST['userId'] ?? 0);
 if (!$userId) {
     // Check JSON fallback

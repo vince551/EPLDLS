@@ -41,6 +41,9 @@ export default function AdminDashboard() {
     // Broadcast
     const [broadcastText, setBroadcastText] = useState('');
 
+    // Editing played score
+    const [editingScoreId, setEditingScoreId] = useState(null);
+
     const loadAdminData = async () => {
         try {
             const [uData, tData, fData, gData] = await Promise.all([
@@ -162,6 +165,17 @@ export default function AdminDashboard() {
         if (isNaN(homeScore) || isNaN(awayScore)) return alert('Enter valid scores');
         try {
             await apiFetch('/fixtures.php?action=submit_score', { method: 'POST', body: { id: fixId, homeScore, awayScore } });
+            loadAdminData();
+        } catch (err) { alert(err.message); }
+    };
+
+    const handleUpdateScore = async (fixId) => {
+        const homeScore = parseInt(scores[`${fixId}_home`]);
+        const awayScore = parseInt(scores[`${fixId}_away`]);
+        if (isNaN(homeScore) || isNaN(awayScore)) return alert('Enter valid scores');
+        try {
+            await apiFetch('/fixtures.php?action=update_score', { method: 'POST', body: { id: fixId, homeScore, awayScore } });
+            setEditingScoreId(null);
             loadAdminData();
         } catch (err) { alert(err.message); }
     };
@@ -380,7 +394,47 @@ export default function AdminDashboard() {
                                     </div>
                                     <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center', flexShrink: 0, flexWrap: 'wrap' }}>
                                         {f.played ? (
-                                            <span className="gv-badge gv-badge-mint">{f.homeScore} - {f.awayScore}</span>
+                                            editingScoreId === f.id ? (
+                                                <div style={{ display: 'flex', gap: '0.3rem', alignItems: 'center' }}>
+                                                    <input type="number" defaultValue={f.homeScore} style={{ width: '40px', padding: '4px', textAlign: 'center' }} className="gv-input" onChange={e => setScores(prev => ({ ...prev, [`${f.id}_home`]: e.target.value }))} />
+                                                    <span style={{ color: '#aaa' }}>-</span>
+                                                    <input type="number" defaultValue={f.awayScore} style={{ width: '40px', padding: '4px', textAlign: 'center' }} className="gv-input" onChange={e => setScores(prev => ({ ...prev, [`${f.id}_away`]: e.target.value }))} />
+                                                    <button className="gv-btn gv-btn-mint" style={{ padding: '4px 8px', fontSize: '0.7rem', display: 'flex', alignItems: 'center', gap: '0.2rem' }} onClick={() => handleUpdateScore(f.id)}>
+                                                        <CheckCircle2 size={12} /> Save
+                                                    </button>
+                                                    <button className="gv-btn gv-btn-secondary" style={{ padding: '4px 8px', fontSize: '0.7rem', display: 'flex', alignItems: 'center', gap: '0.2rem' }} onClick={() => setEditingScoreId(null)}>
+                                                        <X size={12} />
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
+                                                    <span className="gv-badge gv-badge-mint">{f.homeScore} - {f.awayScore}</span>
+                                                    {(() => {
+                                                        if (!f.scoreSubmittedAt) return null;
+                                                        const submitted = new Date(f.scoreSubmittedAt.replace(' ', 'T') + 'Z');
+                                                        const diffMs = (30 * 60 * 1000) - (new Date() - submitted);
+                                                        const remaining = Math.max(0, Math.ceil(diffMs / 60000));
+                                                        if (remaining <= 0) return null;
+                                                        return (
+                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                                                                <button className="gv-btn gv-btn-secondary" style={{ padding: '2px 6px', fontSize: '0.65rem', display: 'flex', alignItems: 'center', gap: '0.15rem' }}
+                                                                    onClick={() => {
+                                                                        setEditingScoreId(f.id);
+                                                                        setScores(prev => ({
+                                                                            ...prev,
+                                                                            [`${f.id}_home`]: f.homeScore,
+                                                                            [`${f.id}_away`]: f.awayScore
+                                                                        }));
+                                                                    }}
+                                                                >
+                                                                    <Pencil size={10} /> Edit
+                                                                </button>
+                                                                <span style={{ fontSize: '0.65rem', color: 'var(--gv-text-muted)' }}>({remaining}m left)</span>
+                                                            </div>
+                                                        );
+                                                    })()}
+                                                </div>
+                                            )
                                         ) : (
                                             <div style={{ display: 'flex', gap: '0.3rem', alignItems: 'center' }}>
                                                 <input type="number" placeholder="H" style={{ width: '40px', padding: '4px', textAlign: 'center' }} className="gv-input" onChange={e => setScores(prev => ({ ...prev, [`${f.id}_home`]: e.target.value }))} />

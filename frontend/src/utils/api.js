@@ -73,3 +73,22 @@ export async function uploadAvatar(userId, fileOrBase64) {
     }
     return data;
 }
+
+export async function uploadImage(file, context) {
+    const url = `${API_BASE_URL}/upload.php`;
+    const body = new FormData();
+    body.append('image', file);
+    body.append('context', context);
+
+    const response = await fetch(url, {
+        method: 'POST',
+        body
+    });
+
+    const data = await response.json();
+    if (!response.ok || !data.success) {
+        throw new Error(data.error || 'Failed to upload image');
+    }
+    return { url: data.url };
+}
+

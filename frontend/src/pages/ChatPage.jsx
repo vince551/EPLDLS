@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { apiFetch } from '../utils/api';
+import { apiFetch, uploadImage } from '../utils/api';
+import ImageLightbox from '../components/ImageLightbox';
 import { useSearchParams } from 'react-router-dom';
-import { MessageCircle, Send, Check, CheckCheck, Shirt, HandMetal, ArrowLeft, Reply, X } from 'lucide-react';
+import { MessageCircle, Send, Check, CheckCheck, Shirt, HandMetal, ArrowLeft, Reply, X, ImagePlus } from 'lucide-react';
 
 const isMobileViewport = () => typeof window !== 'undefined' && window.matchMedia('(max-width: 768px)').matches;
 
@@ -69,9 +70,16 @@ export default function ChatPage() {
     const [loadingConvs, setLoadingConvs] = useState(true);
     const [loadingMsgs, setLoadingMsgs] = useState(false);
 
+    const [chatImageFile, setChatImageFile] = useState(null);
+    const [chatImageUrl, setChatImageUrl] = useState('');
+    const [chatImageUploading, setChatImageUploading] = useState(false);
+    const [chatImageError, setChatImageError] = useState('');
+    const [lightboxSrc, setLightboxSrc] = useState(null);
+
     const chatEndRef = useRef(null);
     const messageRefs = useRef({});
     const messagesPaneRef = useRef(null);
+    const fileInputRef = useRef(null);
     const isNearBottomRef = useRef(true);
     const userJustSentRef = useRef(false);
     const prevMsgCountRef = useRef(0);
@@ -92,6 +100,41 @@ export default function ChatPage() {
     const truncate = (text, n = 80) => {
         if (!text) return '';
         return text.length > n ? text.slice(0, n) + '…' : text;
+    };
+
+    const getQuotePreviewText = (msg) => {
+        if (!msg) return 'Original message';
+        const text = msg.replyToMessage !== undefined ? msg.replyToMessage : msg.message;
+        const img = msg.replyToImageUrl !== undefined ? msg.replyToImageUrl : msg.imageUrl;
+        if ((!text || !text.trim()) && img) {
+            return '📷 Image';
+        }
+        return text ? truncate(text, 60) : 'Original message';
+    };
+
+    const handleFileChange = async (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        setChatImageFile(file);
+        setChatImageError('');
+        setChatImageUploading(true);
+        try {
+            const res = await uploadImage(file, 'chat');
+            setChatImageUrl(res.url);
+        } catch (err) {
+            setChatImageError(err.message || 'Failed to upload image.');
+            setChatImageFile(null);
+            setChatImageUrl('');
+        } finally {
+            setChatImageUploading(false);
+        }
+    };
+
+    const handleRemoveImage = () => {
+        setChatImageFile(null);
+        setChatImageUrl('');
+        setChatImageError('');
+        if (fileInputRef.current) fileInputRef.current.value = '';
     };
 
     const scrollToBottom = (behavior = 'smooth') => {
@@ -220,12 +263,14 @@ export default function ChatPage() {
 
     const handleSendMessage = async (e) => {
         e.preventDefault();
-        if (!inputText.trim() || !activeFriendId || !currentUser?.id) return;
+        if ((!inputText.trim() && !chatImageUrl) || !activeFriendId || !currentUser?.id || chatImageUploading) return;
 
         const textToSend = inputText.trim();
+        const imageToSend = chatImageUrl;
         const replySnapshot = replyingTo;
         setInputText('');
         setReplyingTo(null);
+        handleRemoveImage();
         userJustSentRef.current = true;
         isNearBottomRef.current = true;
 
@@ -234,10 +279,11 @@ export default function ChatPage() {
             senderId: currentUser.id,
             receiverId: activeFriendId,
             message: textToSend,
+            imageUrl: imageToSend || null,
             isRead: false,
             timestamp: new Date().toISOString().slice(0, 19).replace('T', ' '),
             replyToId: replySnapshot?.id || null,
-            replyToMessage: replySnapshot ? truncate(replySnapshot.message) : null,
+            replyToMessage: replySnapshot ? getQuotePreviewText(replySnapshot) : null,
             replyToSenderName: replySnapshot
                 ? (replySnapshot.senderId === currentUser.id ? 'You' : (activeFriend?.name || 'User'))
                 : null,
@@ -246,7 +292,12 @@ export default function ChatPage() {
         setMessages(prev => [...prev, tempMsg]);
 
         try {
-            const body = { senderId: currentUser.id, receiverId: activeFriendId, message: textToSend };
+            const body = {
+                senderId: currentUser.id,
+                receiverId: activeFriendId,
+                message: textToSend,
+                imageUrl: imageToSend || undefined
+            };
             if (replySnapshot?.id) body.replyToId = replySnapshot.id;
 
             await apiFetch('/messages.php?action=send', { method: 'POST', body });
@@ -455,10 +506,34 @@ export default function ChatPage() {
                                                         onClick={() => scrollToMessage(m.replyToId)}
                                                     >
                                                         <span className="reply-quote-author">{m.replyToSenderName || 'Message'}</span>
-                                                        <span className="reply-quote-text">{m.replyToMessage || 'Original message'}</span>
+                                                        <span className="reply-quote-text">{getQuotePreviewText(m)}</span>
                                                     </button>
                                                 )}
-                                                <div>{m.message}</div>
+                                                {m.message ? <div>{m.message}</div> : null}
+                                                {m.imageUrl && (
+                                                    <div style={{ marginTop: '0.4rem', marginBottom: '0.4rem' }}>
+                                                        <img
+                                                            src={m.imageUrl}
+                                                            alt="Chat attachment"
+                                                            onClick={() => setLightboxSrc(m.imageUrl)}
+                                                            onError={(e) => {
+                                                                const span = document.createElement('span');
+                                                                span.className = 'img-fallback';
+                                                                span.textContent = 'Image unavailable';
+                                                                span.style.cssText = 'color: var(--gv-text-sub); font-size: 0.75rem; font-style: italic;';
+                                                                e.target.replaceWith(span);
+                                                            }}
+                                                            style={{
+                                                                maxWidth: '240px',
+                                                                maxHeight: '240px',
+                                                                objectFit: 'cover',
+                                                                borderRadius: '8px',
+                                                                cursor: 'zoom-in',
+                                                                border: '1px solid rgba(255, 255, 255, 0.15)'
+                                                            }}
+                                                        />
+                                                    </div>
+                                                )}
                                                 <div className="chat-meta">
                                                     <span>{formatMsgTime(m.timestamp)}</span>
                                                     {isMe && (
@@ -489,24 +564,56 @@ export default function ChatPage() {
                                     <span className="reply-composer-label">
                                         Replying to {replyingTo.senderId === currentUser.id ? 'yourself' : activeFriend.name}
                                     </span>
-                                    <span className="reply-composer-snippet">{truncate(replyingTo.message, 60)}</span>
+                                    <span className="reply-composer-snippet">{getQuotePreviewText(replyingTo)}</span>
                                 </div>
                                 <button type="button" className="reply-composer-dismiss" onClick={() => setReplyingTo(null)} aria-label="Cancel reply">
                                     <X size={16} />
                                 </button>
                             </div>
                         )}
+                        {(chatImageFile || chatImageUrl || chatImageUploading) && (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', background: 'rgba(0,0,0,0.3)', padding: '0.5rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)', margin: '0.4rem 1rem 0 1rem' }}>
+                                {chatImageUrl ? (
+                                    <img src={chatImageUrl} alt="Chat preview" style={{ width: '40px', height: '40px', objectFit: 'cover', borderRadius: '4px' }} />
+                                ) : (
+                                    <div style={{ width: '40px', height: '40px', background: 'rgba(255,255,255,0.05)', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem', color: 'var(--gv-text-sub)' }}>
+                                        {chatImageUploading ? '...' : 'Preview'}
+                                    </div>
+                                )}
+                                <span style={{ fontSize: '0.8rem', color: 'var(--gv-text-main)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                    {chatImageUploading ? 'Uploading image...' : (chatImageFile?.name || 'Attached image')}
+                                </span>
+                                <button type="button" onClick={handleRemoveImage} style={{ background: 'none', border: 'none', color: 'var(--gv-pink)', cursor: 'pointer', padding: '0.2rem' }} aria-label="Remove image attachment">
+                                    <X size={16} />
+                                </button>
+                            </div>
+                        )}
+                        {chatImageError && (
+                            <div style={{ color: 'var(--gv-pink)', fontSize: '0.75rem', margin: '0.2rem 1rem 0 1rem' }}>
+                                {chatImageError}
+                            </div>
+                        )}
 
                         <form onSubmit={handleSendMessage} className="chat-input-bar">
+                            <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileChange} style={{ display: 'none' }} />
+                            <button
+                                type="button"
+                                className="gv-btn gv-btn-secondary"
+                                style={{ padding: '0.5rem 0.7rem', display: 'inline-flex', alignItems: 'center' }}
+                                onClick={() => fileInputRef.current?.click()}
+                                disabled={chatImageUploading}
+                                aria-label="Attach image"
+                            >
+                                <ImagePlus size={16} />
+                            </button>
                             <input
                                 type="text"
                                 className="gv-input"
                                 placeholder={`Message ${activeFriend.name}...`}
                                 value={inputText}
                                 onChange={handleTyping}
-                                required
                             />
-                            <button type="submit" className="gv-btn gv-btn-mint chat-send-btn">
+                            <button type="submit" className="gv-btn gv-btn-mint chat-send-btn" disabled={chatImageUploading || (!inputText.trim() && !chatImageUrl)}>
                                 <Send size={16} /> <span className="chat-send-label">Send</span>
                             </button>
                         </form>
@@ -518,6 +625,7 @@ export default function ChatPage() {
                     </div>
                 )}
             </div>
+            <ImageLightbox src={lightboxSrc} onClose={() => setLightboxSrc(null)} />
         </div>
     );
 }

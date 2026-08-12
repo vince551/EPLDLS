@@ -5,11 +5,12 @@
    ========================================================================== */
 
 // Environment Detection
-$is_local = in_array($_SERVER['HTTP_HOST'] ?? '', ['localhost', '127.0.0.1', '::1']) || strpos($_SERVER['HTTP_HOST'] ?? '', 'localhost:') === 0;
+$httpHost = explode(':', $_SERVER['HTTP_HOST'] ?? '')[0];
+$is_local = in_array($httpHost, ['localhost', '127.0.0.1', '::1']) || empty($httpHost);
 
 if ($is_local) {
     // Local Database Credentials
-    define('DB_HOST', 'localhost');
+    define('DB_HOST', '127.0.0.1');
     define('DB_NAME', 'sokomtaa-epldls');
     define('DB_USER', 'root');
     define('DB_PASS', '');

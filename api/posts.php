@@ -13,10 +13,21 @@ if ($method === 'POST') {
         $forumId = (int)($input['forumId'] ?? 0);
         $userId = (int)($input['userId'] ?? 0);
         $content = trim($input['content'] ?? '');
+        $imageUrl = trim($input['imageUrl'] ?? '');
         $replyToId = !empty($input['replyToId']) ? (int)$input['replyToId'] : null;
 
-        if (!$forumId || !$userId || !$content) {
+        if (!$forumId || !$userId) {
             jsonResponse(['error' => 'Forum ID, User ID, and Content are required.'], 400);
+        }
+
+        // Validate imageUrl prefix if provided
+        if ($imageUrl !== '' && !str_starts_with($imageUrl, 'http://') && !str_starts_with($imageUrl, 'https://')) {
+            jsonResponse(['error' => 'imageUrl must begin with http:// or https://'], 400);
+        }
+
+        // Require at least content or imageUrl
+        if ($content === '' && $imageUrl === '') {
+            jsonResponse(['error' => 'Content or image is required.'], 400);
         }
 
         // Check if forum is locked
@@ -39,15 +50,16 @@ if ($method === 'POST') {
             }
         }
 
-        $stmt = $pdo->prepare("INSERT INTO forum_posts (forum_id, user_id, content, reply_to_id) VALUES (?, ?, ?, ?)");
-        $stmt->execute([$forumId, $userId, $content, $replyToId]);
+        $stmt = $pdo->prepare("INSERT INTO forum_posts (forum_id, user_id, content, reply_to_id, image_url) VALUES (?, ?, ?, ?, ?)");
+        $stmt->execute([$forumId, $userId, $content, $replyToId, $imageUrl !== '' ? $imageUrl : null]);
         $newId = (int)$pdo->lastInsertId();
 
         // Fetch created post details with optional quote parent
         $postStmt = $pdo->prepare("
             SELECT fp.id, fp.forum_id as forumId, fp.user_id as userId, fp.content, fp.reply_to_id as replyToId,
+                   fp.image_url as imageUrl,
                    fp.created_at as createdAt, u.name as authorName, u.team as authorTeam, u.pic as authorPic, u.role as authorRole,
-                   parent.content as replyToContentRaw, pu.name as replyToAuthorName
+                   parent.content as replyToContentRaw, parent.image_url as replyToImageUrl, pu.name as replyToAuthorName
             FROM forum_posts fp
             JOIN users u ON fp.user_id = u.id
             LEFT JOIN forum_posts parent ON parent.id = fp.reply_to_id
@@ -60,13 +72,17 @@ if ($method === 'POST') {
         $post['forumId'] = (int)$post['forumId'];
         $post['userId'] = (int)$post['userId'];
         $post['replyToId'] = $post['replyToId'] !== null ? (int)$post['replyToId'] : null;
+        $post['imageUrl'] = $post['imageUrl'] ?? null;
         if (!empty($post['replyToContentRaw'])) {
             $raw = $post['replyToContentRaw'];
             $post['replyToContent'] = mb_strlen($raw) > 80 ? mb_substr($raw, 0, 80) . '…' : $raw;
+        } elseif ($post['replyToId'] !== null && !empty($post['replyToImageUrl'])) {
+            $post['replyToContent'] = '📷 Image';
         } else {
             $post['replyToContent'] = null;
         }
         unset($post['replyToContentRaw']);
+        unset($post['replyToImageUrl']);
         $post['likeCount'] = 0;
         $post['isLiked'] = false;
         $post['reactions'] = (object)[];

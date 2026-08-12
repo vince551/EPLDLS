@@ -67,7 +67,8 @@ CREATE TABLE IF NOT EXISTS `fixtures` (
     `group_name` VARCHAR(50) DEFAULT NULL COMMENT 'e.g., Group A, Group B (for group stage)',
     `bracket_position` INT DEFAULT NULL COMMENT 'bracket position for knockout stages',
     `next_fixture_id` INT DEFAULT NULL COMMENT 'fixture_id of next round match this winner feeds into',
-    `winner_slot` ENUM('home', 'away', NULL) DEFAULT NULL COMMENT 'which team slot (home/away) in next_fixture_id',
+    `winner_slot` ENUM('home', 'away') DEFAULT NULL COMMENT 'which team slot (home/away) in next_fixture_id',
+    `score_submitted_at` TIMESTAMP NULL DEFAULT NULL COMMENT 'when fixture score was first submitted (allows edits for 30 mins)',
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (`tourn_id`) REFERENCES `tournaments`(`id`) ON DELETE CASCADE,
     FOREIGN KEY (`next_fixture_id`) REFERENCES `fixtures`(`id`) ON DELETE SET NULL

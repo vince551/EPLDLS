@@ -92,6 +92,16 @@ function ensureSchema($pdo) {
                 $pdo->exec("ALTER TABLE `fixtures` ADD COLUMN `winner_slot` ENUM('home', 'away') DEFAULT NULL");
             } catch (Exception $e) {}
         }
+        if (!in_array('score_edit_count', $fixCols)) {
+            try {
+                $pdo->exec("ALTER TABLE `fixtures` ADD COLUMN `score_edit_count` TINYINT DEFAULT 0");
+            } catch (Exception $e) {}
+        }
+        if (!in_array('score_submitted_at', $fixCols)) {
+            try {
+                $pdo->exec("ALTER TABLE `fixtures` ADD COLUMN `score_submitted_at` TIMESTAMP NULL DEFAULT NULL");
+            } catch (Exception $e) {}
+        }
 
         // Create tournament_standings table
         $pdo->exec("CREATE TABLE IF NOT EXISTS `tournament_standings` (
@@ -146,6 +156,11 @@ function ensureSchema($pdo) {
                 $pdo->exec("ALTER TABLE `messages` ADD CONSTRAINT `fk_reply_to` FOREIGN KEY (`reply_to_id`) REFERENCES `messages`(`id`) ON DELETE SET NULL");
             } catch (Exception $e) {}
         }
+        if (!in_array('image_url', $msgCols)) {
+            try {
+                $pdo->exec("ALTER TABLE `messages` ADD COLUMN `image_url` VARCHAR(2048) NULL DEFAULT NULL");
+            } catch (Exception $e) {}
+        }
 
         // Create forums table
         $pdo->exec("CREATE TABLE IF NOT EXISTS `forums` (
@@ -175,6 +190,11 @@ function ensureSchema($pdo) {
         if (!in_array('reply_to_id', $fpCols)) {
             try {
                 $pdo->exec("ALTER TABLE `forum_posts` ADD COLUMN `reply_to_id` INT DEFAULT NULL");
+            } catch (Exception $e) {}
+        }
+        if (!in_array('image_url', $fpCols)) {
+            try {
+                $pdo->exec("ALTER TABLE `forum_posts` ADD COLUMN `image_url` VARCHAR(2048) NULL DEFAULT NULL");
             } catch (Exception $e) {}
         }
 

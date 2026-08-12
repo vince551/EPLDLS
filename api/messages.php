@@ -21,6 +21,7 @@ try {
 
          // Fetch conversation messages with optional quote-reply parent
          $sql = "SELECT m.id, m.sender_id as senderId, m.receiver_id as receiverId, m.message,
+             m.image_url as imageUrl,
              m.reply_to_id as replyToId, m.is_read as isRead, m.read_at as readAt, m.sent_at as timestamp,
              parent.message as replyToMessageRaw, parent.sender_id as replyToSenderId,
              pu.name as replyToSenderName
@@ -40,6 +41,7 @@ try {
             $m['isRead'] = (bool)$m['isRead'];
             $m['replyToId'] = $m['replyToId'] !== null ? (int)$m['replyToId'] : null;
             $m['replyToSenderId'] = $m['replyToSenderId'] !== null ? (int)$m['replyToSenderId'] : null;
+            $m['imageUrl'] = $m['imageUrl'] ?? null;
             if ($m['replyToMessageRaw']) {
                 $raw = $m['replyToMessageRaw'];
                 // Safe truncation using built-in string functions
@@ -112,7 +114,7 @@ try {
             $fId = (int)$f['id'];
 
             // Last message
-            $lastStmt = $pdo->prepare("SELECT message, sender_id, sent_at, is_read FROM messages WHERE (sender_id = ? AND receiver_id = ?) OR (sender_id = ? AND receiver_id = ?) ORDER BY sent_at DESC LIMIT 1");
+            $lastStmt = $pdo->prepare("SELECT message, image_url, sender_id, sent_at, is_read FROM messages WHERE (sender_id = ? AND receiver_id = ?) OR (sender_id = ? AND receiver_id = ?) ORDER BY sent_at DESC LIMIT 1");
             $lastStmt->execute([$userId, $fId, $fId, $userId]);
             $lastMsg = $lastStmt->fetch();
 
@@ -124,7 +126,20 @@ try {
             $f['id'] = $fId;
             // Online = last_seen within 5 minutes (same logic as users.php)
             $f['online'] = !empty($f['lastSeen']) && (time() - strtotime($f['lastSeen'])) < 300;
-            $f['lastMessage'] = $lastMsg ? $lastMsg['message'] : '';
+
+            // Determine lastMessage preview: image-only gets "📷 Image" (Requirement 3.6)
+            if ($lastMsg) {
+                $lastMsgText = $lastMsg['message'];
+                $lastMsgImageUrl = $lastMsg['image_url'] ?? null;
+                if ($lastMsgImageUrl !== null && ($lastMsgText === null || trim($lastMsgText) === '')) {
+                    $f['lastMessage'] = '📷 Image';
+                } else {
+                    $f['lastMessage'] = $lastMsgText;
+                }
+            } else {
+                $f['lastMessage'] = '';
+            }
+
             $f['lastMessageTime'] = $lastMsg ? $lastMsg['sent_at'] : '';
             $f['lastMessageIsMine'] = $lastMsg ? ((int)$lastMsg['sender_id'] === $userId) : false;
             $f['lastMessageIsRead'] = $lastMsg ? (bool)$lastMsg['is_read'] : false;
@@ -152,10 +167,24 @@ try {
             $receiverId = (int)($input['receiverId'] ?? 0);
             $message = trim($input['message'] ?? '');
             $replyToId = !empty($input['replyToId']) ? (int)$input['replyToId'] : null;
+            $imageUrl = trim($input['imageUrl'] ?? '');
 
-            if (!$senderId || !$receiverId || !$message) {
-                jsonResponse(['error' => 'Sender, receiver, and message text are required.'], 400);
+            if (!$senderId || !$receiverId) {
+                jsonResponse(['error' => 'Sender and receiver are required.'], 400);
             }
+
+            // Validate imageUrl prefix if provided (Requirement 3.4)
+            if ($imageUrl !== '' && !str_starts_with($imageUrl, 'http://') && !str_starts_with($imageUrl, 'https://')) {
+                jsonResponse(['error' => 'imageUrl must begin with http:// or https://'], 400);
+            }
+
+            // Require at least message text or an image (Requirements 3.5)
+            if ($message === '' && $imageUrl === '') {
+                jsonResponse(['error' => 'Content or image is required.'], 400);
+            }
+
+            // Normalise: store null when imageUrl was not supplied
+            $storedImageUrl = $imageUrl !== '' ? $imageUrl : null;
 
             $replyToMessage = null;
             $replyToSenderName = null;
@@ -186,8 +215,8 @@ try {
                 $replyToSenderId = $ps;
             }
 
-            $stmt = $pdo->prepare("INSERT INTO messages (sender_id, receiver_id, message, reply_to_id, is_read) VALUES (?, ?, ?, ?, 0)");
-            $stmt->execute([$senderId, $receiverId, $message, $replyToId]);
+            $stmt = $pdo->prepare("INSERT INTO messages (sender_id, receiver_id, message, reply_to_id, image_url, is_read) VALUES (?, ?, ?, ?, ?, 0)");
+            $stmt->execute([$senderId, $receiverId, $message, $replyToId, $storedImageUrl]);
             $newId = (int)$pdo->lastInsertId();
 
             $msg = [
@@ -195,6 +224,7 @@ try {
                 'senderId' => $senderId,
                 'receiverId' => $receiverId,
                 'message' => $message,
+                'imageUrl' => $storedImageUrl,
                 'replyToId' => $replyToId,
                 'replyToMessage' => $replyToMessage,
                 'replyToSenderName' => $replyToSenderName,

@@ -340,3 +340,34 @@ function advanceWinner($pdo, $nextFixtureId, $winnerName, $winnerSlot) {
     $pdo->prepare("UPDATE fixtures SET $column = ? WHERE id = ?")
         ->execute([$winnerName, $nextFixtureId]);
 }
+
+/**
+ * Reverse group standings for a previously recorded result.
+ * This is the exact inverse of updateGroupStandings() — it subtracts
+ * the stats that were added when the old score was first saved.
+ */
+function reverseGroupStandings($pdo, $tournId, $fixture, $oldHomeScore, $oldAwayScore) {
+    $homeTeam = $fixture['home_team'];
+    $awayTeam = $fixture['away_team'];
+    $groupName = $fixture['group_name'];
+
+    if ($oldHomeScore > $oldAwayScore) {
+        // Home team had won — reverse
+        $pdo->prepare("UPDATE tournament_standings SET wins = wins - 1, played = played - 1, goals_for = goals_for - ?, goals_against = goals_against - ? WHERE tourn_id = ? AND team_name = ? AND group_name = ?")
+            ->execute([$oldHomeScore, $oldAwayScore, $tournId, $homeTeam, $groupName]);
+        $pdo->prepare("UPDATE tournament_standings SET losses = losses - 1, played = played - 1, goals_for = goals_for - ?, goals_against = goals_against - ? WHERE tourn_id = ? AND team_name = ? AND group_name = ?")
+            ->execute([$oldAwayScore, $oldHomeScore, $tournId, $awayTeam, $groupName]);
+    } elseif ($oldAwayScore > $oldHomeScore) {
+        // Away team had won — reverse
+        $pdo->prepare("UPDATE tournament_standings SET wins = wins - 1, played = played - 1, goals_for = goals_for - ?, goals_against = goals_against - ? WHERE tourn_id = ? AND team_name = ? AND group_name = ?")
+            ->execute([$oldAwayScore, $oldHomeScore, $tournId, $awayTeam, $groupName]);
+        $pdo->prepare("UPDATE tournament_standings SET losses = losses - 1, played = played - 1, goals_for = goals_for - ?, goals_against = goals_against - ? WHERE tourn_id = ? AND team_name = ? AND group_name = ?")
+            ->execute([$oldHomeScore, $oldAwayScore, $tournId, $homeTeam, $groupName]);
+    } else {
+        // Was a draw — reverse
+        $pdo->prepare("UPDATE tournament_standings SET draws = draws - 1, played = played - 1, goals_for = goals_for - ?, goals_against = goals_against - ? WHERE tourn_id = ? AND team_name = ? AND group_name = ?")
+            ->execute([$oldHomeScore, $oldAwayScore, $tournId, $homeTeam, $groupName]);
+        $pdo->prepare("UPDATE tournament_standings SET draws = draws - 1, played = played - 1, goals_for = goals_for - ?, goals_against = goals_against - ? WHERE tourn_id = ? AND team_name = ? AND group_name = ?")
+            ->execute([$oldAwayScore, $oldHomeScore, $tournId, $awayTeam, $groupName]);
+    }
+}

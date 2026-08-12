@@ -68,7 +68,8 @@ if ($method === 'GET' && $action === 'get') {
     $postStmt = $pdo->prepare("
         SELECT fp.id, fp.forum_id as forumId, fp.user_id as userId, fp.content, fp.reply_to_id as replyToId,
                fp.created_at as createdAt, u.name as authorName, u.team as authorTeam, u.pic as authorPic, u.role as authorRole,
-               parent.content as replyToContentRaw, pu.name as replyToAuthorName
+               fp.image_url as imageUrl,
+               parent.content as replyToContentRaw, parent.image_url as replyToImageUrl, pu.name as replyToAuthorName
         FROM forum_posts fp
         JOIN users u ON fp.user_id = u.id
         LEFT JOIN forum_posts parent ON parent.id = fp.reply_to_id
@@ -87,10 +88,13 @@ if ($method === 'GET' && $action === 'get') {
         if (!empty($p['replyToContentRaw'])) {
             $raw = $p['replyToContentRaw'];
             $p['replyToContent'] = mb_strlen($raw) > 80 ? mb_substr($raw, 0, 80) . '…' : $raw;
+        } elseif ($p['replyToId'] !== null && !empty($p['replyToImageUrl'])) {
+            $p['replyToContent'] = '📷 Image';
         } else {
             $p['replyToContent'] = null;
         }
         unset($p['replyToContentRaw']);
+        unset($p['replyToImageUrl']);
 
         // Get likes count
         $likeStmt = $pdo->prepare("SELECT COUNT(*) FROM forum_post_likes WHERE post_id = ?");
@@ -186,6 +190,31 @@ if ($method === 'POST') {
         $stmt->execute([$id]);
 
         jsonResponse(['success' => true]);
+    }
+
+    if ($action === 'toggle_like') {
+        $postId = (int)($input['postId'] ?? 0);
+        $userId = (int)($input['userId'] ?? 0);
+
+        if (!$postId || !$userId) {
+            jsonResponse(['error' => 'postId and userId are required.'], 400);
+        }
+
+        $check = $pdo->prepare("SELECT id FROM forum_post_likes WHERE post_id = ? AND user_id = ?");
+        $check->execute([$postId, $userId]);
+        if ($check->fetch()) {
+            $pdo->prepare("DELETE FROM forum_post_likes WHERE post_id = ? AND user_id = ?")->execute([$postId, $userId]);
+            $isLiked = false;
+        } else {
+            $pdo->prepare("INSERT INTO forum_post_likes (post_id, user_id) VALUES (?, ?)")->execute([$postId, $userId]);
+            $isLiked = true;
+        }
+
+        $countStmt = $pdo->prepare("SELECT COUNT(*) FROM forum_post_likes WHERE post_id = ?");
+        $countStmt->execute([$postId]);
+        $likeCount = (int)$countStmt->fetchColumn();
+
+        jsonResponse(['success' => true, 'isLiked' => $isLiked, 'likeCount' => $likeCount]);
     }
 
     // ── Emoji Reactions ────────────────────────────────────────────────────

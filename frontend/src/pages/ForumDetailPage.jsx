@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { apiFetch } from '../utils/api';
+import { apiFetch, uploadImage } from '../utils/api';
+import ImageLightbox from '../components/ImageLightbox';
 import { 
     ArrowLeft, Pin, Lock, MessageCircle, Heart, Trash2, Send, 
-    Shield, Shirt, ArrowRight, Reply, X
+    Shield, Shirt, ArrowRight, Reply, X, ImagePlus
 } from 'lucide-react';
 
 export default function ForumDetailPage() {
@@ -13,6 +14,7 @@ export default function ForumDetailPage() {
     const navigate = useNavigate();
     const composerRef = useRef(null);
     const postRefs = useRef({});
+    const fileInputRef = useRef(null);
 
     const [forum, setForum] = useState(null);
     const [posts, setPosts] = useState([]);
@@ -20,6 +22,12 @@ export default function ForumDetailPage() {
     const [replyingTo, setReplyingTo] = useState(null);
     const [loading, setLoading] = useState(true);
     const [replyLoading, setReplyLoading] = useState(false);
+
+    const [imageFile, setImageFile] = useState(null);
+    const [imageUrl, setImageUrl] = useState('');
+    const [imageUploading, setImageUploading] = useState(false);
+    const [imageError, setImageError] = useState('');
+    const [lightboxSrc, setLightboxSrc] = useState(null);
 
     const getInitials = (name) => {
         if (!name) return '?';
@@ -29,6 +37,41 @@ export default function ForumDetailPage() {
     const truncate = (text, n = 80) => {
         if (!text) return '';
         return text.length > n ? text.slice(0, n) + '…' : text;
+    };
+
+    const getQuotePreviewText = (p) => {
+        if (!p) return 'Original post';
+        const content = p.replyToContent !== undefined ? p.replyToContent : p.content;
+        const img = p.replyToImageUrl !== undefined ? p.replyToImageUrl : p.imageUrl;
+        if ((!content || !content.trim()) && img) {
+            return '📷 Image';
+        }
+        return content ? truncate(content, 60) : 'Original post';
+    };
+
+    const handleFileChange = async (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        setImageFile(file);
+        setImageError('');
+        setImageUploading(true);
+        try {
+            const res = await uploadImage(file, 'forum');
+            setImageUrl(res.url);
+        } catch (err) {
+            setImageError(err.message || 'Failed to upload image.');
+            setImageFile(null);
+            setImageUrl('');
+        } finally {
+            setImageUploading(false);
+        }
+    };
+
+    const handleRemoveImage = () => {
+        setImageFile(null);
+        setImageUrl('');
+        setImageError('');
+        if (fileInputRef.current) fileInputRef.current.value = '';
     };
 
     const fetchThread = async () => {
@@ -70,14 +113,15 @@ export default function ForumDetailPage() {
 
     const handleReplySubmit = async (e) => {
         e.preventDefault();
-        if (!replyContent.trim() || !currentUser?.id) return;
+        if ((!replyContent.trim() && !imageUrl) || !currentUser?.id || imageUploading) return;
         setReplyLoading(true);
 
         try {
             const body = {
                 forumId: parseInt(id),
                 userId: currentUser.id,
-                content: replyContent.trim()
+                content: replyContent.trim(),
+                imageUrl: imageUrl || undefined
             };
             if (replyingTo?.id) body.replyToId = replyingTo.id;
 
@@ -91,6 +135,7 @@ export default function ForumDetailPage() {
             }
             setReplyContent('');
             setReplyingTo(null);
+            handleRemoveImage();
         } catch (err) {
             alert(err.message || 'Failed to submit reply.');
         } finally {
@@ -313,13 +358,40 @@ export default function ForumDetailPage() {
                                         onClick={() => scrollToPost(p.replyToId)}
                                     >
                                         <span className="reply-quote-author">{p.replyToAuthorName || 'Post'}</span>
-                                        <span className="reply-quote-text">{p.replyToContent || 'Original post'}</span>
+                                        <span className="reply-quote-text">{getQuotePreviewText(p)}</span>
                                     </button>
                                 )}
 
-                                <p style={{ fontSize: '0.85rem', color: 'var(--gv-text-main)', lineHeight: 1.4, margin: '0.5rem 0 0.75rem 0' }}>
-                                    {p.content}
-                                </p>
+                                {p.content ? (
+                                    <p style={{ fontSize: '0.85rem', color: 'var(--gv-text-main)', lineHeight: 1.4, margin: '0.5rem 0 0.75rem 0' }}>
+                                        {p.content}
+                                    </p>
+                                ) : null}
+
+                                {p.imageUrl && (
+                                    <div style={{ marginTop: '0.5rem', marginBottom: '0.75rem' }}>
+                                        <img
+                                            src={p.imageUrl}
+                                            alt="Post attachment"
+                                            onClick={() => setLightboxSrc(p.imageUrl)}
+                                            onError={(e) => {
+                                                const span = document.createElement('span');
+                                                span.className = 'img-fallback';
+                                                span.textContent = 'Image unavailable';
+                                                span.style.cssText = 'color: var(--gv-text-sub); font-size: 0.75rem; font-style: italic;';
+                                                e.target.replaceWith(span);
+                                            }}
+                                            style={{
+                                                maxWidth: '100%',
+                                                maxHeight: '400px',
+                                                objectFit: 'contain',
+                                                borderRadius: '8px',
+                                                cursor: 'zoom-in',
+                                                border: '1px solid rgba(255, 255, 255, 0.1)'
+                                            }}
+                                        />
+                                    </div>
+                                )}
 
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
                                     <button 
@@ -407,11 +479,33 @@ export default function ForumDetailPage() {
                             <div className="reply-composer-bar">
                                 <div className="reply-composer-info">
                                     <span className="reply-composer-label">Replying to {replyingTo.authorName}</span>
-                                    <span className="reply-composer-snippet">{truncate(replyingTo.content, 60)}</span>
+                                    <span className="reply-composer-snippet">{getQuotePreviewText(replyingTo)}</span>
                                 </div>
                                 <button type="button" className="reply-composer-dismiss" onClick={() => setReplyingTo(null)} aria-label="Cancel reply">
                                     <X size={16} />
                                 </button>
+                            </div>
+                        )}
+                        {(imageFile || imageUrl || imageUploading) && (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', background: 'rgba(0,0,0,0.3)', padding: '0.5rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)' }}>
+                                {imageUrl ? (
+                                    <img src={imageUrl} alt="Upload preview" style={{ width: '48px', height: '48px', objectFit: 'cover', borderRadius: '4px' }} />
+                                ) : (
+                                    <div style={{ width: '48px', height: '48px', background: 'rgba(255,255,255,0.05)', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem', color: 'var(--gv-text-sub)' }}>
+                                        {imageUploading ? '...' : 'Preview'}
+                                    </div>
+                                )}
+                                <span style={{ fontSize: '0.8rem', color: 'var(--gv-text-main)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                    {imageUploading ? 'Uploading image...' : (imageFile?.name || 'Attached image')}
+                                </span>
+                                <button type="button" onClick={handleRemoveImage} style={{ background: 'none', border: 'none', color: 'var(--gv-pink)', cursor: 'pointer', padding: '0.2rem' }} aria-label="Remove image attachment">
+                                    <X size={16} />
+                                </button>
+                            </div>
+                        )}
+                        {imageError && (
+                            <div style={{ color: 'var(--gv-pink)', fontSize: '0.75rem', marginTop: '0.2rem' }}>
+                                {imageError}
                             </div>
                         )}
                         <textarea 
@@ -420,11 +514,23 @@ export default function ForumDetailPage() {
                             placeholder={replyingTo ? `Reply to ${replyingTo.authorName}...` : 'Write your reply...'}
                             value={replyContent}
                             onChange={(e) => setReplyContent(e.target.value)}
-                            required
                         />
-                        <button type="submit" className="gv-btn gv-btn-mint" style={{ alignSelf: 'flex-end', padding: '0.5rem 1.2rem', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }} disabled={replyLoading}>
-                            {replyLoading ? 'Posting...' : <><Send size={15} /> Post Reply</>}
-                        </button>
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '0.5rem' }}>
+                            <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileChange} style={{ display: 'none' }} />
+                            <button
+                                type="button"
+                                className="gv-btn gv-btn-secondary"
+                                style={{ padding: '0.5rem 0.8rem', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}
+                                onClick={() => fileInputRef.current?.click()}
+                                disabled={imageUploading}
+                                aria-label="Attach image"
+                            >
+                                <ImagePlus size={15} />
+                            </button>
+                            <button type="submit" className="gv-btn gv-btn-mint" style={{ padding: '0.5rem 1.2rem', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }} disabled={replyLoading || imageUploading || (!replyContent.trim() && !imageUrl)}>
+                                {replyLoading ? 'Posting...' : <><Send size={15} /> Post Reply</>}
+                            </button>
+                        </div>
                     </form>
                 ) : (
                     <div style={{ marginTop: '1.5rem', textAlign: 'center', color: 'var(--gv-text-sub)', fontSize: '0.8rem' }}>
@@ -432,6 +538,7 @@ export default function ForumDetailPage() {
                     </div>
                 )}
             </div>
+            <ImageLightbox src={lightboxSrc} onClose={() => setLightboxSrc(null)} />
         </div>
     );
 }
